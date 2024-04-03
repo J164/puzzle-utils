@@ -71,38 +71,33 @@ enum Direction {
 #[derive(Clone)]
 enum PathNode {
   Start,
-  Path(usize)
+  Path(u32),
+  Unvisited
 }
 
 fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
-  let width = width as usize;
-  let height: usize = height as usize;
-  
-  let mut path_tree = vec![PathNode::Start; width * height];
+  let mut path_tree = vec![PathNode::Unvisited; (width * height) as usize];
+  path_tree[0] = PathNode::Start;
 
   let mut traversal = VecDeque::new();
   traversal.push_back(0);
 
   let mut found_paths = 0;
-
-  let mut paths: Vec<Vec<Direction>> = vec![Vec::new(); width];
-  let mut seen_node = vec![false; height * width];
+  let mut paths: Vec<Vec<Direction>> = vec![Vec::new(); width as usize];
 
   while found_paths < width {
     let coordinate = traversal.pop_front().unwrap();
-    seen_node[coordinate] = true;
 
     if (coordinate / width) == (height - 1) {
       found_paths += 1;
       let mut current = coordinate;
 
-      while let PathNode::Path(parent) = path_tree[current] {
-        paths[coordinate % width].push(
+      while let PathNode::Path(parent) = path_tree[current as usize] {
+        paths[(coordinate % width) as usize].push(
           if parent == current + 1 { Direction::Left } 
           else if parent == current + width { Direction::Up }
           else if parent == current - 1 { Direction::Right } 
-          else if parent == current - width { Direction::Down } 
-          else { panic!("unreachable") }
+          else { Direction::Down } 
         );
 
         current = parent;
@@ -110,27 +105,27 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
     }
 
     let right = coordinate + 1;
-    if !maze[coordinate].right && !seen_node[right] {
-      path_tree[right] = PathNode::Path(coordinate);
+    if !maze[coordinate as usize].right && matches!(path_tree[right as usize], PathNode::Unvisited) {
+      path_tree[right as usize] = PathNode::Path(coordinate);
       traversal.push_back(right);
     }
 
     let down = coordinate + width;
-    if !maze[coordinate].down && !seen_node[down] {
-      path_tree[down] = PathNode::Path(coordinate);
+    if !maze[coordinate as usize].down && matches!(path_tree[down as usize], PathNode::Unvisited) {
+      path_tree[down as usize] = PathNode::Path(coordinate);
       traversal.push_back(down);
     }
 
     if let Some(left) = coordinate.checked_sub(1) {
-      if !maze[left].right && !seen_node[left] {
-        path_tree[left] = PathNode::Path(coordinate);
+      if !maze[left as usize].right && matches!(path_tree[left as usize], PathNode::Unvisited) {
+        path_tree[left as usize] = PathNode::Path(coordinate);
         traversal.push_back(left);
       }
     }
 
     if let Some(up) = coordinate.checked_sub(width) {
-      if !maze[up].down && !seen_node[up] {
-        path_tree[up] = PathNode::Path(coordinate);
+      if !maze[up as usize].down && matches!(path_tree[up as usize], PathNode::Unvisited) {
+        path_tree[up as usize] = PathNode::Path(coordinate);
         traversal.push_back(up);
       }
     }
