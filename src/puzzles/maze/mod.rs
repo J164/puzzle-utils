@@ -27,7 +27,7 @@ pub enum MazeError {
 }
 
 pub fn generate_maze(width: u32, height: u32, algorithm: MazeAlgorithm) -> Result<Maze, MazeError> {
-  if width < 1 || width > MAX_DIMENSION || height < 1 || height > MAX_DIMENSION {
+  if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
     return Err(MazeError::InvalidDimension);
   }
 
@@ -66,9 +66,9 @@ enum PathNode {
   Path(usize)
 }
 
-fn solve_maze(width: u32, height: u32, maze: &Vec<Node>) -> Vec<u8> {
-  let width: usize = width.try_into().unwrap();
-  let height: usize = height.try_into().unwrap();
+fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<u8> {
+  let width = width as usize;
+  let height: usize = height as usize;
   
   let mut path_tree = vec![PathNode::Start; width * height];
 
@@ -134,10 +134,10 @@ fn solve_maze(width: u32, height: u32, maze: &Vec<Node>) -> Vec<u8> {
 
   max_path.reverse();
 
-  return max_path;
+  max_path
 }
 
-fn print_maze(width: u32, height: u32, maze: &Vec<Node>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+fn print_maze(width: u32, height: u32, maze: &[Node]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     let mut img = RgbImage::from_pixel(width * 10 + 1, height * 10 + 1, WHITE_PIXEL);
 
     for row in 0..img.height() {
@@ -148,18 +148,18 @@ fn print_maze(width: u32, height: u32, maze: &Vec<Node>) -> ImageBuffer<Rgb<u8>,
       img.put_pixel(col, 0, BLACK_PIXEL);
     }
 
-    for i in 0..maze.len() {
-      let idx: u32 = i.try_into().unwrap();
+    for (i, node) in maze.iter().enumerate() {
+      let idx = i as u32;
       let x = idx % width;
       let y = idx / width;
 
-      if maze[i].right {
+      if node.right {
         for k in 0..=10 {
           img.put_pixel((x + 1) * 10, y * 10 + k, BLACK_PIXEL);
         }
       }
 
-      if maze[i].down {
+      if node.down {
         for k in 0..=10 {
           img.put_pixel(x * 10 + k, (y + 1) * 10, BLACK_PIXEL);
         }

@@ -23,7 +23,7 @@ pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
   maze
 }
 
-fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut Vec<Node>, connections: &mut DisjointSet, visitable: &mut Vec<u8>) -> Option<usize> {
+fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node], connections: &mut DisjointSet, visitable: &mut Vec<u8>) -> Option<usize> {
   while !visitable.is_empty() {
     let rand_idx = choose_random(visitable);
     match rand_idx {

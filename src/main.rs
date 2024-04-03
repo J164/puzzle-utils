@@ -4,7 +4,7 @@ mod util;
 
 use std::env;
 
-use puzzles::maze::{generate_maze, MazeAlgorithm};
+use puzzles::maze::{generate_maze, MazeAlgorithm, MazeError};
 
 fn main() {
   let args: Vec<String> = env::args().collect();
@@ -23,7 +23,11 @@ fn main() {
       Err(_) => { println!("Invalid height"); return; }
   } };
 
-  let maze = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack).unwrap();
+  let maze = match generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) {
+    Ok(maze) => maze,
+    Err(MazeError::InvalidDimension) => { println!("Invalid maze dimensions"); return; } 
+  };
+  
   maze.unsolved.save("maze.png").unwrap();
   maze.solved.save("solution.png").unwrap();
 }
