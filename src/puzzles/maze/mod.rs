@@ -83,24 +83,29 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
   traversal.push_back(0);
 
   let mut found_paths = 0;
-  let mut paths: Vec<Vec<Direction>> = vec![Vec::new(); width as usize];
 
-  while found_paths < width {
+  loop {
     let coordinate = traversal.pop_front().unwrap();
 
     if (coordinate / width) == (height - 1) {
       found_paths += 1;
-      let mut current = coordinate;
+      
+      if found_paths == width {
+        let mut current = coordinate;
 
-      while let PathNode::Path(parent) = path_tree[current as usize] {
-        paths[(coordinate % width) as usize].push(
-          if parent == current + 1 { Direction::Left } 
-          else if parent == current + width { Direction::Up }
-          else if parent == current - 1 { Direction::Right } 
-          else { Direction::Down } 
-        );
+        let mut path = Vec::new();
+        while let PathNode::Path(parent) = path_tree[current as usize] {
+          path.push(
+            if parent == current + 1 { Direction::Left } 
+            else if parent == current + width { Direction::Up }
+            else if parent == current - 1 { Direction::Right } 
+            else { Direction::Down } 
+          );
 
-        current = parent;
+          current = parent;
+        }
+
+        return path;
       }
     }
 
@@ -130,14 +135,6 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
       }
     }
   }
-
-  let mut max_path = paths.iter().max_by(
-    |x, y| x.len().cmp(&y.len())
-  ).unwrap().to_vec();
-
-  max_path.reverse();
-
-  max_path
 }
 
 fn print_maze(width: u32, height: u32, maze: &[Node]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
@@ -182,7 +179,7 @@ fn print_solution(solution: &Vec<Direction>, unsolved: &mut ImageBuffer<Rgb<u8>,
     solved.put_pixel(x + 5, y + k, RED_PIXEL);
   }
 
-  for step in solution {
+  for step in solution.iter().rev() {
     match step {
       Direction::Right => {
         for k in 0..=10 {
