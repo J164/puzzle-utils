@@ -61,12 +61,20 @@ impl Node {
 }
 
 #[derive(Clone)]
+enum Direction {
+  Right,
+  Down,
+  Left,
+  Up
+}
+
+#[derive(Clone)]
 enum PathNode {
   Start,
   Path(usize)
 }
 
-fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<u8> {
+fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
   let width = width as usize;
   let height: usize = height as usize;
   
@@ -77,7 +85,7 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<u8> {
 
   let mut found_paths = 0;
 
-  let mut paths: Vec<Vec<u8>> = vec![Vec::new(); width];
+  let mut paths: Vec<Vec<Direction>> = vec![Vec::new(); width];
   let mut seen_node = vec![false; height * width];
 
   while found_paths < width {
@@ -90,10 +98,10 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<u8> {
 
       while let PathNode::Path(parent) = path_tree[current] {
         paths[coordinate % width].push(
-          if parent == current + 1 { 2 } 
-          else if parent == current + width { 3 }
-          else if parent == current - 1 { 0 } 
-          else if parent == current - width { 1 } 
+          if parent == current + 1 { Direction::Left } 
+          else if parent == current + width { Direction::Up }
+          else if parent == current - 1 { Direction::Right } 
+          else if parent == current - width { Direction::Down } 
           else { panic!("unreachable") }
         );
 
@@ -169,7 +177,7 @@ fn print_maze(width: u32, height: u32, maze: &[Node]) -> ImageBuffer<Rgb<u8>, Ve
     img
 }
 
-fn print_solution(solution: &Vec<u8>, unsolved: &mut ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+fn print_solution(solution: &Vec<Direction>, unsolved: &mut ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
   let mut solved = unsolved.clone();
 
   let mut x = 0;
@@ -181,35 +189,34 @@ fn print_solution(solution: &Vec<u8>, unsolved: &mut ImageBuffer<Rgb<u8>, Vec<u8
 
   for step in solution {
     match step {
-      0 => {
+      Direction::Right => {
         for k in 0..=10 {
           solved.put_pixel(x * 10 + k + 5, y * 10 + 5, RED_PIXEL);
         }
         
         x += 1;
       }
-      1 => {
+      Direction::Down => {
         for k in 0..=10 {
           solved.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
         }
         
         y += 1;
       }
-      2 => {
+      Direction::Left => {
         for k in 0..=10 {
           solved.put_pixel(x * 10 - k + 5, y * 10 + 5, RED_PIXEL);
         }
         
         x -= 1;
       }
-      3 => {
+      Direction::Up => {
         for k in 0..=10 {
           solved.put_pixel(x * 10 + 5, y * 10 - k + 5, RED_PIXEL);
         }
         
         y -= 1;
       }
-      _ => panic!("unreachable")
     }
   }
 

@@ -1,6 +1,6 @@
 use crate::{structures::disjoint_set::DisjointSet, util::choose_random};
 
-use super::Node;
+use super::{Direction, Node};
 
 pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
   let width: usize = width.try_into().unwrap();
@@ -10,7 +10,7 @@ pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
   let mut connections = DisjointSet::with_size(width * height);
               
   let mut path = vec![0];
-  let mut can_visit: Vec<Vec<u8>> = vec![vec![0,1,2,3]; width * height];
+  let mut can_visit: Vec<Vec<Direction>> = vec![vec![Direction::Right,Direction::Down,Direction::Left,Direction::Up]; width * height];
   while !path.is_empty() {
     let coordinate = path[path.len() - 1];
 
@@ -23,11 +23,11 @@ pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
   maze
 }
 
-fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node], connections: &mut DisjointSet, visitable: &mut Vec<u8>) -> Option<usize> {
+fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node], connections: &mut DisjointSet, visitable: &mut Vec<Direction>) -> Option<usize> {
   while !visitable.is_empty() {
     let rand_idx = choose_random(visitable);
     match rand_idx {
-      0 => {
+      Direction::Right => {
         if (coordinate % width) == (width - 1) {
           continue;
         }
@@ -42,7 +42,7 @@ fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node],
         connections.union(coordinate, next).unwrap();
         return Some(next);
       } 
-      1 => {
+      Direction::Down => {
         if coordinate >= width * (height - 1) {
           continue;
         }
@@ -57,7 +57,7 @@ fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node],
         connections.union(coordinate, next).unwrap();
         return Some(next);
       }
-      2 => {
+      Direction::Left => {
         if coordinate % width == 0 {
           continue;
         }
@@ -72,7 +72,7 @@ fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node],
         connections.union(coordinate, next).unwrap();
         return Some(next);
       }
-      3 => {
+      Direction::Up => {
         if coordinate < width {
           continue;
         }
@@ -87,7 +87,6 @@ fn visit_next(coordinate: usize, width: usize, height: usize, maze: &mut [Node],
         connections.union(coordinate, next).unwrap();
         return Some(next);
       }
-      _ => panic!("unreachable")
     }
   }
 
