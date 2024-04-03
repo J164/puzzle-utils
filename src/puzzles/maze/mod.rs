@@ -10,6 +10,8 @@ const WHITE_PIXEL: Rgb<u8> = Rgb([255, 255, 255]);
 const BLACK_PIXEL: Rgb<u8> = Rgb([0, 0, 0]);
 const RED_PIXEL: Rgb<u8> = Rgb([255, 0, 0]);
 
+const MAX_DIMENSION: u32 = 1_000;
+
 pub struct Maze {
   pub unsolved: ImageBuffer<Rgb<u8>, Vec<u8>>,
   pub solved: ImageBuffer<Rgb<u8>, Vec<u8>>
@@ -25,7 +27,7 @@ pub enum MazeError {
 }
 
 pub fn generate_maze(width: u32, height: u32, algorithm: MazeAlgorithm) -> Result<Maze, MazeError> {
-  if width < 1 || width > 1_000 || height < 1 || height > 1_000 {
+  if width < 1 || width > MAX_DIMENSION || height < 1 || height > MAX_DIMENSION {
     return Err(MazeError::InvalidDimension);
   }
 
