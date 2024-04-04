@@ -10,7 +10,7 @@ const WHITE_PIXEL: Rgb<u8> = Rgb([255, 255, 255]);
 const BLACK_PIXEL: Rgb<u8> = Rgb([0, 0, 0]);
 const RED_PIXEL: Rgb<u8> = Rgb([255, 0, 0]);
 
-const MAX_DIMENSION: u32 = 1_000;
+const MAX_DIMENSION: u32 = 5_000;
 
 pub struct Maze {
   pub unsolved: ImageBuffer<Rgb<u8>, Vec<u8>>,
@@ -169,7 +169,7 @@ fn print_maze(width: u32, height: u32, maze: &[Node]) -> ImageBuffer<Rgb<u8>, Ve
     img
 }
 
-fn print_solution(solution: &Vec<Direction>, unsolved: &mut ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+fn print_solution(solution: &[Direction], unsolved: &mut ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
   let mut solved = unsolved.clone();
 
   let mut x = 0;
