@@ -94,11 +94,9 @@ fn sudoku(args: &[String]) -> Result<(), Error> {
 
                         Ok(Some(value))
                     }
-                    Err(_) => {
-                        Err(Error::InvalidArguments(
-                            "Sudoku squares must be positive integers",
-                        ))
-                    }
+                    Err(_) => Err(Error::InvalidArguments(
+                        "Sudoku squares must be positive integers",
+                    )),
                 }
             }
         })
