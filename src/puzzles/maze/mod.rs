@@ -82,7 +82,9 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
     let mut found_paths = 0;
 
     loop {
-        let coordinate = traversal.pop_front().unwrap();
+        let coordinate = traversal
+            .pop_front()
+            .expect("the traversal should be non-empty");
 
         if (coordinate / width) == (height - 1) {
             found_paths += 1;

@@ -30,7 +30,7 @@ pub fn solve_sudoku(sudoku: &[Option<u8>]) -> Result<Vec<Option<u8>>, SudokuSolv
     }
 
     while !stack.is_empty() {
-        let Square { index, candidates } = stack.last_mut().unwrap();
+        let Square { index, candidates } = stack.last_mut().expect("stack should be non-empty");
 
         if candidates.is_empty() {
             sudoku[*index] = None;

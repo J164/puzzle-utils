@@ -66,8 +66,13 @@ fn maze(args: &[String]) -> Result<(), Error> {
         }
     };
 
-    maze.unsolved.save("maze.png").unwrap();
-    maze.solved.save("solution.png").unwrap();
+    // TODO: better cli handling for image saving
+    maze.unsolved
+        .save("maze.png")
+        .expect("image should save successfully");
+    maze.solved
+        .save("solution.png")
+        .expect("image should save successfully");
 
     Ok(())
 }
@@ -112,9 +117,9 @@ fn sudoku(args: &[String]) -> Result<(), Error> {
 
     println!("Solution:");
     match solve_sudoku(&puzzle) {
-        Ok(solution) => print_sudoku(&solution).unwrap(),
+        Ok(solution) => print_sudoku(&solution).expect("the puzzle size should be correct"),
         Err(SudokuSolveError::NoSolution) => print!("No solution"),
-        _ => unreachable!(),
+        _ => unreachable!("the puzzle size should be correct"),
     };
 
     Ok(())

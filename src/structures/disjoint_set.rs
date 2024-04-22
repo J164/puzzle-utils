@@ -54,6 +54,10 @@ impl DisjointSet {
         Ok(self.find_helper(idx))
     }
 
+    pub fn common_set(&mut self, idx_one: usize, idx_two: usize) -> Result<bool, DisjointSetError> {
+        Ok(self.find(idx_one)? == self.find(idx_two)?)
+    }
+
     pub fn union(&mut self, idx_one: usize, idx_two: usize) -> Result<(), DisjointSetError> {
         let root_one = self.find(idx_one)?;
         let root_two = self.find(idx_two)?;

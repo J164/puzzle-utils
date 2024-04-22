@@ -46,7 +46,7 @@ fn visit_next(
     visitable: &mut Vec<Direction>,
 ) -> Option<u32> {
     while !visitable.is_empty() {
-        let rand_idx = choose_random(visitable);
+        let rand_idx = choose_random(visitable).expect("visitable should be non-empty");
         match rand_idx {
             Direction::Right => {
                 if (coordinate % width) == (width - 1) {
@@ -55,8 +55,9 @@ fn visit_next(
 
                 let next = coordinate + 1;
 
-                if connections.find(coordinate as usize).unwrap()
-                    == connections.find(next as usize).unwrap()
+                if connections
+                    .common_set(coordinate as usize, next as usize)
+                    .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
@@ -64,7 +65,7 @@ fn visit_next(
                 maze[coordinate as usize].right = false;
                 connections
                     .union(coordinate as usize, next as usize)
-                    .unwrap();
+                    .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
             Direction::Down => {
@@ -74,8 +75,9 @@ fn visit_next(
 
                 let next = coordinate + width;
 
-                if connections.find(coordinate as usize).unwrap()
-                    == connections.find(next as usize).unwrap()
+                if connections
+                    .common_set(coordinate as usize, next as usize)
+                    .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
@@ -83,7 +85,7 @@ fn visit_next(
                 maze[coordinate as usize].down = false;
                 connections
                     .union(coordinate as usize, next as usize)
-                    .unwrap();
+                    .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
             Direction::Left => {
@@ -93,8 +95,9 @@ fn visit_next(
 
                 let next = coordinate - 1;
 
-                if connections.find(coordinate as usize).unwrap()
-                    == connections.find(next as usize).unwrap()
+                if connections
+                    .common_set(coordinate as usize, next as usize)
+                    .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
@@ -102,7 +105,7 @@ fn visit_next(
                 maze[next as usize].right = false;
                 connections
                     .union(coordinate as usize, next as usize)
-                    .unwrap();
+                    .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
             Direction::Up => {
@@ -112,8 +115,9 @@ fn visit_next(
 
                 let next = coordinate - width;
 
-                if connections.find(coordinate as usize).unwrap()
-                    == connections.find(next as usize).unwrap()
+                if connections
+                    .common_set(coordinate as usize, next as usize)
+                    .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
@@ -121,7 +125,7 @@ fn visit_next(
                 maze[next as usize].down = false;
                 connections
                     .union(coordinate as usize, next as usize)
-                    .unwrap();
+                    .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
         }
