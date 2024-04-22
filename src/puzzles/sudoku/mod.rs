@@ -5,11 +5,21 @@ const GRID_SIZE: usize = 9;
 const BOX_SIZE: usize = 3;
 
 #[derive(Debug)]
-pub enum SudokuError {
+pub enum SudokuPrintError {
+    InvalidSize,
+}
+
+#[derive(Debug)]
+pub enum SudokuSolveError {
+    InvalidSize,
     NoSolution,
 }
 
-pub fn solve_sudoku(sudoku: &[Option<u8>]) -> Result<Vec<Option<u8>>, SudokuError> {
+pub fn solve_sudoku(sudoku: &[Option<u8>]) -> Result<Vec<Option<u8>>, SudokuSolveError> {
+    if sudoku.len() != GRID_SIZE * GRID_SIZE {
+        return Err(SudokuSolveError::InvalidSize);
+    }
+
     let mut sudoku = sudoku.to_owned();
     let mut stack = Vec::with_capacity(GRID_SIZE * GRID_SIZE);
 
@@ -21,7 +31,7 @@ pub fn solve_sudoku(sudoku: &[Option<u8>]) -> Result<Vec<Option<u8>>, SudokuErro
 
     while !stack.is_empty() {
         let Square { index, candidates } = stack.last_mut().unwrap();
-        
+
         if candidates.is_empty() {
             sudoku[*index] = None;
             stack.pop();
@@ -37,7 +47,7 @@ pub fn solve_sudoku(sudoku: &[Option<u8>]) -> Result<Vec<Option<u8>>, SudokuErro
         }
     }
 
-    Err(SudokuError::NoSolution)
+    Err(SudokuSolveError::NoSolution)
 }
 
 struct Square {
@@ -58,7 +68,7 @@ fn next_blank(sudoku: &[Option<u8>], start: usize) -> Option<Square> {
         })
 }
 
-pub fn candidates(sudoku: &[Option<u8>], position: usize) -> Vec<u8> {
+fn candidates(sudoku: &[Option<u8>], position: usize) -> Vec<u8> {
     let row = position / GRID_SIZE;
     let col = position % GRID_SIZE;
     let box_start = ((row / 3) * GRID_SIZE + col / 3) * BOX_SIZE;
@@ -78,7 +88,11 @@ pub fn candidates(sudoku: &[Option<u8>], position: usize) -> Vec<u8> {
         .collect()
 }
 
-pub fn print_sudoku(sudoku: &[Option<u8>]) {
+pub fn print_sudoku(sudoku: &[Option<u8>]) -> Result<(), SudokuPrintError> {
+    if sudoku.len() != GRID_SIZE * GRID_SIZE {
+        return Err(SudokuPrintError::InvalidSize);
+    }
+
     for row in 0..GRID_SIZE {
         for col in 0..GRID_SIZE {
             print!(
@@ -103,4 +117,6 @@ pub fn print_sudoku(sudoku: &[Option<u8>]) {
             }
         }
     }
+
+    Ok(())
 }
