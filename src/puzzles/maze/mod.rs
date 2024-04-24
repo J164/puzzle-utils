@@ -4,11 +4,10 @@ use std::collections::VecDeque;
 
 use image::{ImageBuffer, Rgb, RgbImage};
 
-use crate::puzzles::maze::recursive_backtrack::recursive_backtrack;
-
-const WHITE_PIXEL: Rgb<u8> = Rgb([255, 255, 255]);
-const BLACK_PIXEL: Rgb<u8> = Rgb([0, 0, 0]);
-const RED_PIXEL: Rgb<u8> = Rgb([255, 0, 0]);
+use crate::{
+    puzzles::maze::recursive_backtrack::recursive_backtrack,
+    util::{BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
+};
 
 const MAX_DIMENSION: u32 = 5_000;
 
