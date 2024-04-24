@@ -5,7 +5,7 @@ mod util;
 use std::env;
 
 use puzzles::{
-    maze::{generate_maze, MazeAlgorithm, MazeError},
+    maze::{generate_maze, MazeAlgorithm},
     sudoku::{print_sudoku, solve_sudoku},
 };
 
@@ -45,9 +45,8 @@ fn maze(args: &[String]) -> Result<(), Error> {
         return Err(Error::MissingArguments);
     }
 
-    let width = match args[0].parse() {
-        Ok(width) => width,
-        Err(_) => return Err(Error::InvalidArguments("Invalid width")),
+    let Ok(width) = args[0].parse() else {
+        return Err(Error::InvalidArguments("Invalid width"));
     };
 
     let height = if args.len() < 2 {
@@ -59,11 +58,8 @@ fn maze(args: &[String]) -> Result<(), Error> {
         }
     };
 
-    let maze = match generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) {
-        Ok(maze) => maze,
-        Err(MazeError::InvalidDimension) => {
-            return Err(Error::InvalidArguments("Invalid maze dimensions"))
-        }
+    let Ok(maze) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) else {
+        return Err(Error::InvalidArguments("Invalid maze dimensions"));
     };
 
     // TODO: better cli handling for image saving
@@ -119,7 +115,7 @@ fn sudoku(args: &[String]) -> Result<(), Error> {
     match solve_sudoku(&puzzle) {
         Ok(solution) => print_sudoku(&solution).expect("the puzzle size should be correct"),
         Err(SudokuSolveError::NoSolution) => print!("No solution"),
-        _ => unreachable!("the puzzle size should be correct"),
+        Err(SudokuSolveError::InvalidSize) => unreachable!("the puzzle size should be correct"),
     };
 
     Ok(())
