@@ -1,53 +1,38 @@
 const NUM_MIN: u8 = 1;
 const NUM_MAX: u8 = 9;
 
-const GRID_SIZE: usize = 9;
+pub const GRID_SIZE: usize = 9;
 const BOX_SIZE: usize = 3;
 
-#[derive(Debug)]
-pub enum SudokuPrintError {
-    InvalidSize,
-}
-
-#[derive(Debug)]
-pub enum SudokuSolveError {
-    InvalidSize,
-    NoSolution,
-}
-
-pub fn solve_sudoku(sudoku: &[Option<u8>]) -> Result<Vec<Option<u8>>, SudokuSolveError> {
-    if sudoku.len() != GRID_SIZE * GRID_SIZE {
-        return Err(SudokuSolveError::InvalidSize);
-    }
-
+pub fn solve_sudoku(sudoku: &[u8]) -> Option<Vec<u8>> {
     let mut sudoku = sudoku.to_owned();
     let mut stack = Vec::with_capacity(GRID_SIZE * GRID_SIZE);
 
     if let Some(square) = next_blank(&sudoku, 0) {
         stack.push(square);
     } else {
-        return Ok(sudoku);
+        return Some(sudoku);
     }
 
     while !stack.is_empty() {
         let Square { index, candidates } = stack.last_mut().expect("stack should be non-empty");
 
         if candidates.is_empty() {
-            sudoku[*index] = None;
+            sudoku[*index] = 0;
             stack.pop();
             continue;
         }
 
-        sudoku[*index] = candidates.pop();
+        sudoku[*index] = candidates.pop().expect("candidates should be non-empty");
 
         if let Some(square) = next_blank(&sudoku, *index) {
             stack.push(square);
         } else {
-            return Ok(sudoku);
+            return Some(sudoku);
         }
     }
 
-    Err(SudokuSolveError::NoSolution)
+    None
 }
 
 struct Square {
@@ -55,26 +40,29 @@ struct Square {
     candidates: Vec<u8>,
 }
 
-fn next_blank(sudoku: &[Option<u8>], start: usize) -> Option<Square> {
+fn next_blank(sudoku: &[u8], start: usize) -> Option<Square> {
     sudoku[start..]
         .iter()
         .enumerate()
-        .find_map(|(index, value)| match value {
-            Some(_) => None,
-            None => Some(Square {
-                index: index + start,
-                candidates: candidates(sudoku, index + start),
-            }),
+        .find_map(|(index, &value)| {
+            if value == 0 {
+                Some(Square {
+                    index: index + start,
+                    candidates: candidates(sudoku, index + start),
+                })
+            } else {
+                None
+            }
         })
 }
 
-fn candidates(sudoku: &[Option<u8>], position: usize) -> Vec<u8> {
+fn candidates(sudoku: &[u8], position: usize) -> Vec<u8> {
     let row = position / GRID_SIZE;
     let col = position % GRID_SIZE;
     let box_start = ((row / 3) * GRID_SIZE + col / 3) * BOX_SIZE;
 
     (NUM_MIN..=NUM_MAX)
-        .filter(|candidate| {
+        .filter(|&candidate| {
             let row_iter = (row * GRID_SIZE)..((row + 1) * GRID_SIZE);
             let col_iter = (col..=(col + (GRID_SIZE) * (GRID_SIZE - 1))).step_by(GRID_SIZE);
             let box_iter = (0..BOX_SIZE)
@@ -83,24 +71,17 @@ fn candidates(sudoku: &[Option<u8>], position: usize) -> Vec<u8> {
             row_iter
                 .chain(col_iter)
                 .chain(box_iter)
-                .all(|x| sudoku[x] != Some(*candidate))
+                .all(|x| sudoku[x] != candidate)
         })
         .collect()
 }
 
-pub fn print_sudoku(sudoku: &[Option<u8>]) -> Result<(), SudokuPrintError> {
-    if sudoku.len() != GRID_SIZE * GRID_SIZE {
-        return Err(SudokuPrintError::InvalidSize);
-    }
-
+pub fn print_sudoku(sudoku: &[u8]) {
     for row in 0..GRID_SIZE {
         for col in 0..GRID_SIZE {
             print!(
                 "{}{}",
-                match sudoku[row * 9 + col] {
-                    Some(x) => x.to_string(),
-                    None => " ".to_string(),
-                },
+                sudoku[row * 9 + col],
                 if col % GRID_SIZE == GRID_SIZE - 1 {
                     '\n'
                 } else if col % BOX_SIZE == BOX_SIZE - 1 {
@@ -117,6 +98,4 @@ pub fn print_sudoku(sudoku: &[Option<u8>]) -> Result<(), SudokuPrintError> {
             }
         }
     }
-
-    Ok(())
 }

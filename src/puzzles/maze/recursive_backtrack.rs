@@ -2,9 +2,9 @@ use crate::{structures::disjoint_set::DisjointSet, util::choose_random};
 
 use super::{Direction, Node};
 
-pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
-    let mut maze = vec![Node::new(); (width * height) as usize];
-    let mut connections = DisjointSet::with_size((width * height) as usize);
+pub fn recursive_backtrack(width: usize, height: usize) -> Vec<Node> {
+    let mut maze = vec![Node::new(); width * height];
+    let mut connections = DisjointSet::with_size(width * height);
 
     let mut path = vec![0];
     let mut can_visit = vec![
@@ -14,7 +14,7 @@ pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
             Direction::Left,
             Direction::Up
         ];
-        (width * height) as usize
+        width * height
     ];
     while !path.is_empty() {
         let coordinate = path[path.len() - 1];
@@ -25,7 +25,7 @@ pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
             height,
             &mut maze,
             &mut connections,
-            &mut can_visit[coordinate as usize],
+            &mut can_visit[coordinate],
         ) {
             Some(next) => path.push(next),
             None => {
@@ -38,13 +38,13 @@ pub fn recursive_backtrack(width: u32, height: u32) -> Vec<Node> {
 }
 
 fn visit_next(
-    coordinate: u32,
-    width: u32,
-    height: u32,
+    coordinate: usize,
+    width: usize,
+    height: usize,
     maze: &mut [Node],
     connections: &mut DisjointSet,
     visitable: &mut Vec<Direction>,
-) -> Option<u32> {
+) -> Option<usize> {
     while !visitable.is_empty() {
         let rand_idx = choose_random(visitable).expect("visitable should be non-empty");
         match rand_idx {
@@ -56,15 +56,15 @@ fn visit_next(
                 let next = coordinate + 1;
 
                 if connections
-                    .common_set(coordinate as usize, next as usize)
+                    .common_set(coordinate, next)
                     .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
 
-                maze[coordinate as usize].right = false;
+                maze[coordinate].right = false;
                 connections
-                    .union(coordinate as usize, next as usize)
+                    .union(coordinate, next)
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
@@ -76,15 +76,15 @@ fn visit_next(
                 let next = coordinate + width;
 
                 if connections
-                    .common_set(coordinate as usize, next as usize)
+                    .common_set(coordinate, next)
                     .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
 
-                maze[coordinate as usize].down = false;
+                maze[coordinate].down = false;
                 connections
-                    .union(coordinate as usize, next as usize)
+                    .union(coordinate, next)
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
@@ -96,15 +96,15 @@ fn visit_next(
                 let next = coordinate - 1;
 
                 if connections
-                    .common_set(coordinate as usize, next as usize)
+                    .common_set(coordinate, next)
                     .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
 
-                maze[next as usize].right = false;
+                maze[next].right = false;
                 connections
-                    .union(coordinate as usize, next as usize)
+                    .union(coordinate, next)
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
@@ -116,15 +116,15 @@ fn visit_next(
                 let next = coordinate - width;
 
                 if connections
-                    .common_set(coordinate as usize, next as usize)
+                    .common_set(coordinate, next)
                     .expect("coordinate and next should be present in the set")
                 {
                     continue;
                 }
 
-                maze[next as usize].down = false;
+                maze[next].down = false;
                 connections
-                    .union(coordinate as usize, next as usize)
+                    .union(coordinate, next)
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }

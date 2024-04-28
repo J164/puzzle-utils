@@ -9,7 +9,7 @@ use puzzles::{
     sudoku::{print_sudoku, solve_sudoku},
 };
 
-use crate::puzzles::sudoku::{SudokuPrintError, SudokuSolveError};
+use crate::puzzles::sudoku::GRID_SIZE;
 
 #[derive(Debug)]
 enum Error {
@@ -58,7 +58,7 @@ fn maze(args: &[String]) -> Result<(), Error> {
         }
     };
 
-    let Ok(maze) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) else {
+    let Some(maze) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) else {
         return Err(Error::InvalidArguments("Invalid maze dimensions"));
     };
 
@@ -81,41 +81,36 @@ fn sudoku(args: &[String]) -> Result<(), Error> {
     let raw_puzzle = args[0].split(',');
 
     let puzzle = raw_puzzle
-        .map(|x| match x {
-            "0" => Ok(None),
-            _ => {
-                let value = x.parse::<u8>();
-                match value {
-                    Ok(value) => {
-                        if !(1..=9).contains(&value) {
-                            return Err(Error::InvalidArguments(
-                                "Sudoku squares must be in the range 1..9",
-                            ));
-                        }
-
-                        Ok(Some(value))
+        .map(|x| {
+            let value = x.parse::<u8>();
+            match value {
+                Ok(value) => {
+                    if !(0..=9).contains(&value) {
+                        return Err(Error::InvalidArguments(
+                            "Sudoku squares must be in the range 1..9 or 0 for blanks",
+                        ));
                     }
-                    Err(_) => Err(Error::InvalidArguments(
-                        "Sudoku squares must be positive integers",
-                    )),
+
+                    Ok(value)
                 }
+                Err(_) => Err(Error::InvalidArguments(
+                    "Sudoku squares must be positive integers",
+                )),
             }
         })
-        .collect::<Result<Vec<Option<u8>>, Error>>()?;
+        .collect::<Result<Vec<u8>, Error>>()?;
+
+    if puzzle.len() != GRID_SIZE * GRID_SIZE {
+        return Err(Error::InvalidArguments("Invalid puzzle size"));
+    }
 
     println!("Original Puzzle:");
-    match print_sudoku(&puzzle) {
-        Ok(_) => (),
-        Err(SudokuPrintError::InvalidSize) => {
-            return Err(Error::InvalidArguments("Incorrect puzzle size"))
-        }
-    };
+    print_sudoku(&puzzle);
 
     println!("Solution:");
     match solve_sudoku(&puzzle) {
-        Ok(solution) => print_sudoku(&solution).expect("the puzzle size should be correct"),
-        Err(SudokuSolveError::NoSolution) => print!("No solution"),
-        Err(SudokuSolveError::InvalidSize) => unreachable!("the puzzle size should be correct"),
+        Some(solution) => print_sudoku(&solution),
+        None => print!("No solution"),
     };
 
     Ok(())

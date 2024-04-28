@@ -9,9 +9,9 @@ use crate::{
     util::{BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
 };
 
-const MAX_DIMENSION: u32 = 5_000;
+const MAX_DIMENSION: usize = 5_000;
 
-pub struct Maze {
+pub struct MazeImage {
     pub unsolved: ImageBuffer<Rgb<u8>, Vec<u8>>,
     pub solved: ImageBuffer<Rgb<u8>, Vec<u8>>,
 }
@@ -20,25 +20,20 @@ pub enum MazeAlgorithm {
     RecursiveBacktrack,
 }
 
-#[derive(Debug)]
-pub enum MazeError {
-    InvalidDimension,
-}
-
-pub fn generate_maze(width: u32, height: u32, algorithm: MazeAlgorithm) -> Result<Maze, MazeError> {
+pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> Option<MazeImage> {
     if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
-        return Err(MazeError::InvalidDimension);
+        return None;
     }
 
     let unsolved_maze = match algorithm {
         MazeAlgorithm::RecursiveBacktrack => recursive_backtrack(width, height),
     };
 
-    let mut unsolved = print_maze(width, height, &unsolved_maze);
+    let mut unsolved = print_maze(width as u32, height as u32, &unsolved_maze);
     let solution = solve_maze(width, height, &unsolved_maze);
     let solved = print_solution(&solution, &mut unsolved);
 
-    Ok(Maze { unsolved, solved })
+    Some(MazeImage { unsolved, solved })
 }
 
 #[derive(Clone)]
@@ -67,12 +62,12 @@ enum Direction {
 #[derive(Clone)]
 enum PathNode {
     Start,
-    Path(u32),
+    Path(usize),
     Unvisited,
 }
 
-fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
-    let mut path_tree = vec![PathNode::Unvisited; (width * height) as usize];
+fn solve_maze(width: usize, height: usize, maze: &[Node]) -> Vec<Direction> {
+    let mut path_tree = vec![PathNode::Unvisited; width * height];
     path_tree[0] = PathNode::Start;
 
     let mut traversal = VecDeque::new();
@@ -92,7 +87,7 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
                 let mut current = coordinate;
 
                 let mut path = Vec::new();
-                while let PathNode::Path(parent) = path_tree[current as usize] {
+                while let PathNode::Path(parent) = path_tree[current] {
                     path.push(if parent == current + 1 {
                         Direction::Left
                     } else if parent == current + width {
@@ -111,32 +106,27 @@ fn solve_maze(width: u32, height: u32, maze: &[Node]) -> Vec<Direction> {
         }
 
         let right = coordinate + 1;
-        if !maze[coordinate as usize].right
-            && matches!(path_tree[right as usize], PathNode::Unvisited)
-        {
-            path_tree[right as usize] = PathNode::Path(coordinate);
+        if !maze[coordinate].right && matches!(path_tree[right], PathNode::Unvisited) {
+            path_tree[right] = PathNode::Path(coordinate);
             traversal.push_back(right);
         }
 
         let down = coordinate + width;
-        if !maze[coordinate as usize].down
-            && matches!(path_tree[down as usize], PathNode::Unvisited)
-        {
-            path_tree[down as usize] = PathNode::Path(coordinate);
+        if !maze[coordinate].down && matches!(path_tree[down], PathNode::Unvisited) {
+            path_tree[down] = PathNode::Path(coordinate);
             traversal.push_back(down);
         }
 
         if let Some(left) = coordinate.checked_sub(1) {
-            if !maze[left as usize].right && matches!(path_tree[left as usize], PathNode::Unvisited)
-            {
-                path_tree[left as usize] = PathNode::Path(coordinate);
+            if !maze[left].right && matches!(path_tree[left], PathNode::Unvisited) {
+                path_tree[left] = PathNode::Path(coordinate);
                 traversal.push_back(left);
             }
         }
 
         if let Some(up) = coordinate.checked_sub(width) {
-            if !maze[up as usize].down && matches!(path_tree[up as usize], PathNode::Unvisited) {
-                path_tree[up as usize] = PathNode::Path(coordinate);
+            if !maze[up].down && matches!(path_tree[up], PathNode::Unvisited) {
+                path_tree[up] = PathNode::Path(coordinate);
                 traversal.push_back(up);
             }
         }

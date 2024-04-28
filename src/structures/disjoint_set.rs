@@ -2,11 +2,6 @@ pub struct DisjointSet {
     elements: Vec<Element>,
 }
 
-#[derive(Debug)]
-pub enum DisjointSetError {
-    IndexOutOfBounds,
-}
-
 #[derive(Clone)]
 struct Element {
     root: bool,
@@ -46,24 +41,24 @@ impl DisjointSet {
         self.elements.push(Element::new());
     }
 
-    pub fn find(&mut self, idx: usize) -> Result<usize, DisjointSetError> {
+    pub fn find(&mut self, idx: usize) -> Option<usize> {
         if idx >= self.elements.len() {
-            return Err(DisjointSetError::IndexOutOfBounds);
+            return None;
         }
 
-        Ok(self.find_helper(idx))
+        Some(self.find_helper(idx))
     }
 
-    pub fn common_set(&mut self, idx_one: usize, idx_two: usize) -> Result<bool, DisjointSetError> {
-        Ok(self.find(idx_one)? == self.find(idx_two)?)
+    pub fn common_set(&mut self, idx_one: usize, idx_two: usize) -> Option<bool> {
+        Some(self.find(idx_one)? == self.find(idx_two)?)
     }
 
-    pub fn union(&mut self, idx_one: usize, idx_two: usize) -> Result<(), DisjointSetError> {
+    pub fn union(&mut self, idx_one: usize, idx_two: usize) -> Option<usize> {
         let root_one = self.find(idx_one)?;
         let root_two = self.find(idx_two)?;
 
         if root_one == root_two {
-            return Ok(());
+            return Some(root_one);
         }
 
         let (smaller_idx, larger_idx) =
@@ -73,7 +68,7 @@ impl DisjointSet {
                 (root_two, root_one)
             };
         self.elements[smaller_idx] = Element::from_parent(larger_idx);
-        Ok(())
+        Some(smaller_idx)
     }
 
     fn find_helper(&mut self, idx: usize) -> usize {
