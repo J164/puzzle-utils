@@ -6,6 +6,7 @@ use std::env;
 
 use puzzles::{
     maze::{generate_maze, MazeAlgorithm},
+    nonogram::solve_nonogram,
     sudoku::{print_sudoku, solve_sudoku},
 };
 
@@ -26,6 +27,7 @@ fn main() {
 
     let result = match args[1].as_str() {
         "maze" => maze(&args[2..]),
+        "nonogram" => nonogram(&args[2..]),
         "sudoku" => sudoku(&args[2..]),
         _ => {
             println!("Invalid puzzle type");
@@ -68,6 +70,22 @@ fn maze(args: &[String]) -> Result<(), Error> {
         .expect("image should save successfully");
     maze.solved
         .save("solution.png")
+        .expect("image should save successfully");
+
+    Ok(())
+}
+
+fn nonogram(args: &[String]) -> Result<(), Error> {
+    if args.len() < 2 {
+        return Err(Error::MissingArguments);
+    }
+
+    let Some(solution) = solve_nonogram(&args[0], &args[1]) else {
+        return Err(Error::InvalidArguments("Invalid rules"));
+    };
+
+    solution
+        .save("nonogram.png")
         .expect("image should save successfully");
 
     Ok(())
