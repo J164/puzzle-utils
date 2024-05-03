@@ -76,26 +76,6 @@ fn candidates(sudoku: &[u8], position: usize) -> Vec<u8> {
         .collect()
 }
 
-pub fn print_sudoku(sudoku: &[u8]) {
-    for row in 0..GRID_SIZE {
-        for col in 0..GRID_SIZE {
-            print!(
-                "{}{}",
-                sudoku[row * 9 + col],
-                if col % GRID_SIZE == GRID_SIZE - 1 {
-                    '\n'
-                } else if col % BOX_SIZE == BOX_SIZE - 1 {
-                    '|'
-                } else {
-                    ' '
-                }
-            );
-        }
-
-        if row % BOX_SIZE == BOX_SIZE - 1 && row % GRID_SIZE != GRID_SIZE - 1 {
-            for col in 0..GRID_SIZE {
-                print!("—{}", if col == GRID_SIZE - 1 { '\n' } else { ' ' });
-            }
-        }
-    }
+pub fn print_sudoku(sudoku: &[u8]) -> String {
+    sudoku.iter().map(|x| x.to_string()).collect()
 }

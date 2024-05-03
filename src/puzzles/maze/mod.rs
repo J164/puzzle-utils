@@ -2,38 +2,35 @@ mod recursive_backtrack;
 
 use std::collections::VecDeque;
 
-use image::{ImageBuffer, Rgb, RgbImage};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
-use crate::{
-    puzzles::maze::recursive_backtrack::recursive_backtrack,
-    util::{BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
-};
+use crate::puzzles::maze::recursive_backtrack::recursive_backtrack;
 
 const MAX_DIMENSION: usize = 5_000;
 
-pub struct MazeImage {
-    pub unsolved: ImageBuffer<Rgb<u8>, Vec<u8>>,
-    pub solved: ImageBuffer<Rgb<u8>, Vec<u8>>,
+pub struct Maze {
+    width: usize,
+    height: usize,
+    grid: Vec<Node>,
+    solution: Vec<usize>,
+}
+
+impl Serialize for Maze {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Maze", 4)?;
+        state.serialize_field("width", &self.width)?;
+        state.serialize_field("height", &self.height)?;
+        state.serialize_field("grid", &self.grid)?;
+        state.serialize_field("solution", &self.solution)?;
+        state.end()
+    }
 }
 
 pub enum MazeAlgorithm {
     RecursiveBacktrack,
-}
-
-pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> Option<MazeImage> {
-    if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
-        return None;
-    }
-
-    let unsolved_maze = match algorithm {
-        MazeAlgorithm::RecursiveBacktrack => recursive_backtrack(width, height),
-    };
-
-    let mut unsolved = print_maze(width as u32, height as u32, &unsolved_maze);
-    let solution = solve_maze(width, height, &unsolved_maze);
-    let solved = print_solution(&solution, &mut unsolved);
-
-    Some(MazeImage { unsolved, solved })
 }
 
 #[derive(Clone)]
@@ -48,6 +45,18 @@ impl Node {
             right: true,
             down: true,
         }
+    }
+}
+
+impl Serialize for Node {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Node", 2)?;
+        state.serialize_field("right", &self.right)?;
+        state.serialize_field("down", &self.down)?;
+        state.end()
     }
 }
 
@@ -66,7 +75,15 @@ enum PathNode {
     Unvisited,
 }
 
-fn solve_maze(width: usize, height: usize, maze: &[Node]) -> Vec<Direction> {
+pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> Option<Maze> {
+    if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
+        return None;
+    }
+
+    let mut grid = match algorithm {
+        MazeAlgorithm::RecursiveBacktrack => recursive_backtrack(width, height),
+    };
+
     let mut path_tree = vec![PathNode::Unvisited; width * height];
     path_tree[0] = PathNode::Start;
 
@@ -84,141 +101,48 @@ fn solve_maze(width: usize, height: usize, maze: &[Node]) -> Vec<Direction> {
             found_paths += 1;
 
             if found_paths == width {
+                grid[coordinate].down = false;
                 let mut current = coordinate;
 
-                let mut path = Vec::new();
+                let mut solution = Vec::new();
                 while let PathNode::Path(parent) = path_tree[current] {
-                    path.push(if parent == current + 1 {
-                        Direction::Left
-                    } else if parent == current + width {
-                        Direction::Up
-                    } else if parent == current - 1 {
-                        Direction::Right
-                    } else {
-                        Direction::Down
-                    });
-
+                    solution.push(current);
                     current = parent;
                 }
 
-                return path;
+                return Some(Maze {
+                    width,
+                    height,
+                    grid,
+                    solution,
+                });
             }
         }
 
         let right = coordinate + 1;
-        if !maze[coordinate].right && matches!(path_tree[right], PathNode::Unvisited) {
+        if !grid[coordinate].right && matches!(path_tree[right], PathNode::Unvisited) {
             path_tree[right] = PathNode::Path(coordinate);
             traversal.push_back(right);
         }
 
         let down = coordinate + width;
-        if !maze[coordinate].down && matches!(path_tree[down], PathNode::Unvisited) {
+        if !grid[coordinate].down && matches!(path_tree[down], PathNode::Unvisited) {
             path_tree[down] = PathNode::Path(coordinate);
             traversal.push_back(down);
         }
 
         if let Some(left) = coordinate.checked_sub(1) {
-            if !maze[left].right && matches!(path_tree[left], PathNode::Unvisited) {
+            if !grid[left].right && matches!(path_tree[left], PathNode::Unvisited) {
                 path_tree[left] = PathNode::Path(coordinate);
                 traversal.push_back(left);
             }
         }
 
         if let Some(up) = coordinate.checked_sub(width) {
-            if !maze[up].down && matches!(path_tree[up], PathNode::Unvisited) {
+            if !grid[up].down && matches!(path_tree[up], PathNode::Unvisited) {
                 path_tree[up] = PathNode::Path(coordinate);
                 traversal.push_back(up);
             }
         }
     }
-}
-
-fn print_maze(width: u32, height: u32, maze: &[Node]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let mut img = RgbImage::from_pixel(width * 10 + 1, height * 10 + 1, WHITE_PIXEL);
-
-    for row in 0..img.height() {
-        img.put_pixel(0, row, BLACK_PIXEL);
-    }
-
-    for col in 10..img.width() {
-        img.put_pixel(col, 0, BLACK_PIXEL);
-    }
-
-    for (i, node) in maze.iter().enumerate() {
-        let idx = i as u32;
-        let x = idx % width;
-        let y = idx / width;
-
-        if node.right {
-            for k in 0..=10 {
-                img.put_pixel((x + 1) * 10, y * 10 + k, BLACK_PIXEL);
-            }
-        }
-
-        if node.down {
-            for k in 0..=10 {
-                img.put_pixel(x * 10 + k, (y + 1) * 10, BLACK_PIXEL);
-            }
-        }
-    }
-
-    img
-}
-
-fn print_solution(
-    solution: &[Direction],
-    unsolved: &mut ImageBuffer<Rgb<u8>, Vec<u8>>,
-) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let mut solved = unsolved.clone();
-
-    let mut x = 0;
-    let mut y = 0;
-
-    for k in 0..=5 {
-        solved.put_pixel(x + 5, y + k, RED_PIXEL);
-    }
-
-    for step in solution.iter().rev() {
-        match step {
-            Direction::Right => {
-                for k in 0..=10 {
-                    solved.put_pixel(x * 10 + k + 5, y * 10 + 5, RED_PIXEL);
-                }
-
-                x += 1;
-            }
-            Direction::Down => {
-                for k in 0..=10 {
-                    solved.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
-                }
-
-                y += 1;
-            }
-            Direction::Left => {
-                for k in 0..=10 {
-                    solved.put_pixel(x * 10 - k + 5, y * 10 + 5, RED_PIXEL);
-                }
-
-                x -= 1;
-            }
-            Direction::Up => {
-                for k in 0..=10 {
-                    solved.put_pixel(x * 10 + 5, y * 10 - k + 5, RED_PIXEL);
-                }
-
-                y -= 1;
-            }
-        }
-    }
-
-    for k in 1..10 {
-        unsolved.put_pixel(x * 10 + k, (y + 1) * 10, WHITE_PIXEL);
-        solved.put_pixel(x * 10 + k, (y + 1) * 10, WHITE_PIXEL);
-    }
-
-    for k in 1..=5 {
-        solved.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
-    }
-
-    solved
 }

@@ -1,6 +1,23 @@
-use image::{ImageBuffer, Rgb, RgbImage};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
-use crate::util::{BLACK_PIXEL, WHITE_PIXEL};
+pub struct Nonogram {
+    width: usize,
+    height: usize,
+    grid: Vec<bool>,
+}
+
+impl Serialize for Nonogram {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Maze", 3)?;
+        state.serialize_field("width", &self.width)?;
+        state.serialize_field("height", &self.height)?;
+        state.serialize_field("grid", &self.grid)?;
+        state.end()
+    }
+}
 
 fn parse_rule(rule: &str, rule_height: usize) -> Option<Vec<Vec<usize>>> {
     rule.split(';')
@@ -19,7 +36,7 @@ fn parse_rule(rule: &str, rule_height: usize) -> Option<Vec<Vec<usize>>> {
         .collect::<Option<Vec<Vec<usize>>>>()
 }
 
-pub fn solve_nonogram(row: &str, col: &str) -> Option<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+pub fn solve_nonogram(row: &str, col: &str) -> Option<Nonogram> {
     let height = row.split(';').count();
     let width = col.split(';').count();
 
@@ -32,26 +49,9 @@ pub fn solve_nonogram(row: &str, col: &str) -> Option<ImageBuffer<Rgb<u8>, Vec<u
 
     let mut grid = vec![false; height * width];
 
-    Some(print_nonogram(width, height, &grid))
-}
-
-pub fn print_nonogram(width: usize, height: usize, grid: &[bool]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let width = width as u32;
-    let height = height as u32;
-
-    let mut img = RgbImage::from_pixel(width * 10, height * 10, WHITE_PIXEL);
-
-    for (i, _) in grid.iter().enumerate().filter(|(_, &x)| x) {
-        let idx = i as u32;
-        let x = idx % width;
-        let y = idx / width;
-
-        for row in 0..10 {
-            for col in 0..10 {
-                img.put_pixel(x * 10 + col, y * 10 + row, BLACK_PIXEL);
-            }
-        }
-    }
-
-    img
+    Some(Nonogram {
+        width,
+        height,
+        grid,
+    })
 }

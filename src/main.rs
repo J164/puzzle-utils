@@ -2,134 +2,83 @@ mod puzzles;
 mod structures;
 mod util;
 
-use std::env;
+use std::collections::HashMap;
 
+use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
 use puzzles::{
-    maze::{generate_maze, MazeAlgorithm},
-    nonogram::solve_nonogram,
+    maze::{generate_maze, Maze, MazeAlgorithm},
+    nonogram::{solve_nonogram, Nonogram},
     sudoku::{print_sudoku, solve_sudoku},
 };
 
 use crate::puzzles::sudoku::GRID_SIZE;
 
-#[derive(Debug)]
-enum Error {
-    MissingArguments,
-    InvalidArguments(&'static str),
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/", get(|| async { "Hello, World!" }))
+        .route("/maze", get(maze))
+        .route("/nonogram", get(nonogram))
+        .route("/sudoku", get(sudoku));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        println!("Please enter the type of puzzle to create/solve");
-        return;
-    }
+async fn maze(Query(params): Query<HashMap<String, String>>) -> Result<Json<Maze>, StatusCode> {
+    let width = params
+        .get("width")
+        .ok_or(StatusCode::BAD_REQUEST)?
+        .parse::<usize>()
+        .or(Err(StatusCode::BAD_REQUEST))?;
 
-    let result = match args[1].as_str() {
-        "maze" => maze(&args[2..]),
-        "nonogram" => nonogram(&args[2..]),
-        "sudoku" => sudoku(&args[2..]),
-        _ => {
-            println!("Invalid puzzle type");
-            return;
-        }
-    };
-
-    match result {
-        Ok(_) => (),
-        Err(Error::MissingArguments) => println!("Missing arguments"),
-        Err(Error::InvalidArguments(reason)) => println!("{reason}"),
-    }
-}
-
-fn maze(args: &[String]) -> Result<(), Error> {
-    if args.is_empty() {
-        return Err(Error::MissingArguments);
-    }
-
-    let Ok(width) = args[0].parse() else {
-        return Err(Error::InvalidArguments("Invalid width"));
-    };
-
-    let height = if args.len() < 2 {
-        width
-    } else {
-        match args[1].parse() {
-            Ok(height) => height,
-            Err(_) => return Err(Error::InvalidArguments("Invalid height")),
-        }
+    let height = match params.get("height") {
+        Some(height) => height.parse::<usize>().or(Err(StatusCode::BAD_REQUEST))?,
+        None => width,
     };
 
     let Some(maze) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) else {
-        return Err(Error::InvalidArguments("Invalid maze dimensions"));
+        return Err(StatusCode::BAD_REQUEST);
     };
 
-    // TODO: better cli handling for image saving
-    maze.unsolved
-        .save("maze.png")
-        .expect("image should save successfully");
-    maze.solved
-        .save("solution.png")
-        .expect("image should save successfully");
-
-    Ok(())
+    Ok(axum::Json(maze))
 }
 
-fn nonogram(args: &[String]) -> Result<(), Error> {
-    if args.len() < 2 {
-        return Err(Error::MissingArguments);
-    }
+async fn nonogram(
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<Nonogram>, StatusCode> {
+    Ok(axum::Json(
+        solve_nonogram(
+            params.get("row").ok_or(StatusCode::BAD_REQUEST)?,
+            params.get("col").ok_or(StatusCode::BAD_REQUEST)?,
+        )
+        .ok_or(StatusCode::BAD_REQUEST)?,
+    ))
+}
 
-    let Some(solution) = solve_nonogram(&args[0], &args[1]) else {
-        return Err(Error::InvalidArguments("Invalid rules"));
+async fn sudoku(Query(params): Query<HashMap<String, String>>) -> Result<String, StatusCode> {
+    let Some(raw_puzzle) = params.get("puzzle") else {
+        return Err(StatusCode::BAD_REQUEST);
     };
-
-    solution
-        .save("nonogram.png")
-        .expect("image should save successfully");
-
-    Ok(())
-}
-
-fn sudoku(args: &[String]) -> Result<(), Error> {
-    if args.is_empty() {
-        return Err(Error::MissingArguments);
-    }
-
-    let raw_puzzle = args[0].split(',');
 
     let puzzle = raw_puzzle
+        .chars()
         .map(|x| {
-            let value = x.parse::<u8>();
-            match value {
-                Ok(value) => {
-                    if !(0..=9).contains(&value) {
-                        return Err(Error::InvalidArguments(
-                            "Sudoku squares must be in the range 1..9 or 0 for blanks",
-                        ));
-                    }
+            let value = x.to_digit(10).ok_or(StatusCode::BAD_REQUEST)?;
 
-                    Ok(value)
-                }
-                Err(_) => Err(Error::InvalidArguments(
-                    "Sudoku squares must be positive integers",
-                )),
+            if (0..=9).contains(&value) {
+                return Ok(value as u8);
             }
+
+            Err(StatusCode::BAD_REQUEST)
         })
-        .collect::<Result<Vec<u8>, Error>>()?;
+        .collect::<Result<Vec<u8>, StatusCode>>()?;
 
     if puzzle.len() != GRID_SIZE * GRID_SIZE {
-        return Err(Error::InvalidArguments("Invalid puzzle size"));
+        return Err(StatusCode::BAD_REQUEST);
     }
 
-    println!("Original Puzzle:");
-    print_sudoku(&puzzle);
+    let result = solve_sudoku(&puzzle).ok_or(StatusCode::BAD_REQUEST)?;
 
-    println!("Solution:");
-    match solve_sudoku(&puzzle) {
-        Some(solution) => print_sudoku(&solution),
-        None => print!("No solution"),
-    };
-
-    Ok(())
+    Ok(print_sudoku(&result))
 }
