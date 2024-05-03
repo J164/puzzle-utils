@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn union_by_size() {
         let mut set = DisjointSet::with_size(5);
-        
+
         set.union(0, 1);
         set.union(2, 1);
         assert!(set.elements[0].root);
@@ -150,7 +150,7 @@ mod tests {
         set.union(0, 1);
         set.union(1, 2);
         set.union(2, 3);
-        
+
         set.union(4, 5);
         set.union(5, 6);
 
@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(set.find(2).expect("should be some"), 0);
         assert!(set.find(3).is_some());
         assert_eq!(set.find(3).expect("should be some"), 0);
-        
+
         assert!(set.find(4).is_some());
         assert_eq!(set.find(4).expect("should be some"), 4);
         assert!(set.find(5).is_some());
@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn find_path_compression() {
         let mut set = DisjointSet::with_size(5);
-        
+
         set.union(0, 1);
         set.union(2, 1);
         set.union(3, 4);
@@ -196,7 +196,7 @@ mod tests {
         set.union(0, 1);
         set.union(1, 2);
         set.union(2, 3);
-        
+
         set.union(4, 5);
         set.union(5, 6);
 
@@ -204,7 +204,10 @@ mod tests {
             for j in 0..8 {
                 assert!(set.common_set(i, j).is_some());
 
-                if i == j || (0..=3).contains(&i) && (0..=3).contains(&j) || (4..=6).contains(&i) && (4..=6).contains(&j) {
+                if i == j
+                    || (0..=3).contains(&i) && (0..=3).contains(&j)
+                    || (4..=6).contains(&i) && (4..=6).contains(&j)
+                {
                     assert!(set.common_set(i, j).expect("should be some"));
                 } else {
                     assert!(!set.common_set(i, j).expect("should be some"));

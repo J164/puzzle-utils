@@ -8,7 +8,7 @@ use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
 use puzzles::{
     maze::{generate_maze, Maze, MazeAlgorithm},
     nonogram::{solve_nonogram, Nonogram},
-    sudoku::{print_sudoku, solve_sudoku},
+    sudoku::solve_sudoku,
 };
 
 use crate::puzzles::sudoku::GRID_SIZE;
@@ -37,11 +37,10 @@ async fn maze(Query(params): Query<HashMap<String, String>>) -> Result<Json<Maze
         None => width,
     };
 
-    let Some(maze) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack) else {
-        return Err(StatusCode::BAD_REQUEST);
-    };
-
-    Ok(axum::Json(maze))
+    Ok(axum::Json(
+        generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack)
+            .ok_or(StatusCode::BAD_REQUEST)?,
+    ))
 }
 
 async fn nonogram(
@@ -56,7 +55,9 @@ async fn nonogram(
     ))
 }
 
-async fn sudoku(Query(params): Query<HashMap<String, String>>) -> Result<String, StatusCode> {
+async fn sudoku(
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<Vec<u8>>, StatusCode> {
     let Some(raw_puzzle) = params.get("puzzle") else {
         return Err(StatusCode::BAD_REQUEST);
     };
@@ -78,7 +79,7 @@ async fn sudoku(Query(params): Query<HashMap<String, String>>) -> Result<String,
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let result = solve_sudoku(&puzzle).ok_or(StatusCode::BAD_REQUEST)?;
-
-    Ok(print_sudoku(&result))
+    Ok(axum::Json(
+        solve_sudoku(&puzzle).ok_or(StatusCode::BAD_REQUEST)?,
+    ))
 }

@@ -75,7 +75,3 @@ fn candidates(sudoku: &[u8], position: usize) -> Vec<u8> {
         })
         .collect()
 }
-
-pub fn print_sudoku(sudoku: &[u8]) -> String {
-    sudoku.iter().map(|x| x.to_string()).collect()
-}
