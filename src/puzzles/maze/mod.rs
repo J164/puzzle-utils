@@ -2,32 +2,14 @@ mod recursive_backtrack;
 
 use std::collections::VecDeque;
 
-use serde::ser::{Serialize, SerializeStruct, Serializer};
+use image::{ImageBuffer, Rgb, RgbImage};
 
-use crate::puzzles::maze::recursive_backtrack::recursive_backtrack;
+use crate::{
+    puzzles::maze::recursive_backtrack::recursive_backtrack,
+    util::{BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
+};
 
-const MAX_DIMENSION: usize = 5_000;
-
-pub struct Maze {
-    width: usize,
-    height: usize,
-    grid: Vec<Node>,
-    solution: Vec<usize>,
-}
-
-impl Serialize for Maze {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Maze", 4)?;
-        state.serialize_field("width", &self.width)?;
-        state.serialize_field("height", &self.height)?;
-        state.serialize_field("grid", &self.grid)?;
-        state.serialize_field("solution", &self.solution)?;
-        state.end()
-    }
-}
+const MAX_DIMENSION: usize = 100;
 
 pub enum MazeAlgorithm {
     RecursiveBacktrack,
@@ -48,18 +30,6 @@ impl Node {
     }
 }
 
-impl Serialize for Node {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Node", 2)?;
-        state.serialize_field("right", &self.right)?;
-        state.serialize_field("down", &self.down)?;
-        state.end()
-    }
-}
-
 #[derive(Clone)]
 enum Direction {
     Right,
@@ -75,7 +45,9 @@ enum PathNode {
     Unvisited,
 }
 
-pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> Option<Maze> {
+type MazeImages = (ImageBuffer<Rgb<u8>, Vec<u8>>, ImageBuffer<Rgb<u8>, Vec<u8>>);
+
+pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> Option<MazeImages> {
     if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
         return None;
     }
@@ -106,16 +78,23 @@ pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> O
 
                 let mut solution = Vec::new();
                 while let PathNode::Path(parent) = path_tree[current] {
-                    solution.push(current);
+                    solution.push(if parent == current + 1 {
+                        Direction::Left
+                    } else if parent == current + width {
+                        Direction::Up
+                    } else if parent == current - 1 {
+                        Direction::Right
+                    } else {
+                        Direction::Down
+                    });
+
                     current = parent;
                 }
 
-                return Some(Maze {
-                    width,
-                    height,
-                    grid,
-                    solution,
-                });
+                let unsolved = print_maze(width as u32, height as u32, &grid);
+                let solved = print_solution(unsolved.clone(), &solution);
+
+                return Some((unsolved, solved));
             }
         }
 
@@ -145,4 +124,87 @@ pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> O
             }
         }
     }
+}
+
+fn print_maze(width: u32, height: u32, grid: &[Node]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+    let mut img = RgbImage::from_pixel(width * 10 + 1, height * 10 + 1, WHITE_PIXEL);
+
+    for row in 0..img.height() {
+        img.put_pixel(0, row, BLACK_PIXEL);
+    }
+
+    for col in 10..img.width() {
+        img.put_pixel(col, 0, BLACK_PIXEL);
+    }
+
+    for (i, node) in grid.iter().enumerate() {
+        let idx = i as u32;
+        let x = idx % width;
+        let y = idx / width;
+
+        if node.right {
+            for k in 0..=10 {
+                img.put_pixel((x + 1) * 10, y * 10 + k, BLACK_PIXEL);
+            }
+        }
+
+        if node.down {
+            for k in 0..=10 {
+                img.put_pixel(x * 10 + k, (y + 1) * 10, BLACK_PIXEL);
+            }
+        }
+    }
+
+    img
+}
+
+fn print_solution(
+    mut image: ImageBuffer<Rgb<u8>, Vec<u8>>,
+    solution: &[Direction],
+) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+    let mut x = 0;
+    let mut y = 0;
+
+    for k in 0..=5 {
+        image.put_pixel(x + 5, y + k, RED_PIXEL);
+    }
+
+    for step in solution.iter().rev() {
+        match step {
+            Direction::Right => {
+                for k in 0..=10 {
+                    image.put_pixel(x * 10 + k + 5, y * 10 + 5, RED_PIXEL);
+                }
+
+                x += 1;
+            }
+            Direction::Down => {
+                for k in 0..=10 {
+                    image.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
+                }
+
+                y += 1;
+            }
+            Direction::Left => {
+                for k in 0..=10 {
+                    image.put_pixel(x * 10 - k + 5, y * 10 + 5, RED_PIXEL);
+                }
+
+                x -= 1;
+            }
+            Direction::Up => {
+                for k in 0..=10 {
+                    image.put_pixel(x * 10 + 5, y * 10 - k + 5, RED_PIXEL);
+                }
+
+                y -= 1;
+            }
+        }
+    }
+
+    for k in 1..=5 {
+        image.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
+    }
+
+    image
 }
