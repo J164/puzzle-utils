@@ -1,8 +1,9 @@
+mod cloudflare_image;
 mod puzzles;
 mod structures;
 mod util;
 
-use std::{collections::HashMap, env, io::Cursor};
+use std::{collections::HashMap, env};
 
 use axum::{
     extract::{Query, State},
@@ -10,18 +11,16 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use image::ImageFormat;
 use puzzles::{
     maze::{generate_maze, MazeAlgorithm},
     nonogram::{solve_nonogram, Nonogram},
     sudoku::solve_sudoku,
 };
-use reqwest::{header, multipart::Form, Client};
-use serde::Deserialize;
+use reqwest::{header, Client};
 use serde_json::{json, Value};
 use tokio::{join, net::TcpListener};
 
-use crate::puzzles::sudoku::GRID_SIZE;
+use crate::{cloudflare_image::serve_image, puzzles::sudoku::GRID_SIZE};
 
 #[derive(Clone)]
 struct Config {
@@ -75,16 +74,6 @@ async fn main() {
     };
 }
 
-#[derive(Deserialize)]
-struct CloudflareImageResult {
-    variants: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct CloudflareImageResponse {
-    result: CloudflareImageResult,
-}
-
 async fn maze(
     State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
@@ -103,51 +92,13 @@ async fn maze(
     let (unsolved, solved) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let mut unsolved_bytes = Vec::new();
-    unsolved
-        .write_to(&mut Cursor::new(&mut unsolved_bytes), ImageFormat::Jpeg)
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))?;
-    let unsolved_form = Form::new().part("file", reqwest::multipart::Part::bytes(unsolved_bytes));
-
-    let unsolved_request = config
-        .cloudflare_client
-        .post(format!(
-            "https://api.cloudflare.com/client/v4/accounts/{}/images/v1",
-            config.cloudflare_id
-        ))
-        .multipart(unsolved_form)
-        .send();
-
-    let mut solved_bytes = Vec::new();
-    solved
-        .write_to(&mut Cursor::new(&mut solved_bytes), ImageFormat::Jpeg)
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))?;
-    let solved_form = Form::new().part("file", reqwest::multipart::Part::bytes(solved_bytes));
-
-    let solved_request = config
-        .cloudflare_client
-        .post(format!(
-            "https://api.cloudflare.com/client/v4/accounts/{}/images/v1",
-            config.cloudflare_id
-        ))
-        .multipart(solved_form)
-        .send();
-
-    let (unsolved_response, solved_response) = join!(unsolved_request, solved_request);
-
-    let unsolved_response = unsolved_response
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))?
-        .json::<CloudflareImageResponse>()
-        .await
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))?;
-    let solved_response = solved_response
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))?
-        .json::<CloudflareImageResponse>()
-        .await
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))?;
+    let (unsolved_response, solved_response) = join!(
+        serve_image(&config.cloudflare_client, &config.cloudflare_id, &unsolved),
+        serve_image(&config.cloudflare_client, &config.cloudflare_id, &solved)
+    );
 
     Ok(Json(
-        json!({ "unsolved": unsolved_response.result.variants, "solved": solved_response.result.variants }),
+        json!({ "unsolved": unsolved_response.or(Err(StatusCode::INTERNAL_SERVER_ERROR))?, "solved": solved_response.or(Err(StatusCode::INTERNAL_SERVER_ERROR))? }),
     ))
 }
 
