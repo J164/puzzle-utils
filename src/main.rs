@@ -33,14 +33,14 @@ struct Config {
 async fn main() {
     let env = env::args().collect::<Vec<String>>();
 
-    if env.len() < 2 {
+    if env.len() < 3 {
         println!("Missing arguments");
         return;
     }
 
     let mut headers = HeaderMap::new();
 
-    let Ok(mut auth_value) = HeaderValue::from_str(&format!("bearer {}", env[1])) else {
+    let Ok(mut auth_value) = HeaderValue::from_str(&format!("bearer {}", env[2])) else {
         println!("bearer token contains invalid characters");
         return;
     };
@@ -54,7 +54,7 @@ async fn main() {
         .expect("client should be formed correctly");
 
     let config = Config {
-        cloudflare_id: env[0].clone(),
+        cloudflare_id: env[1].clone(),
         cloudflare_client,
     };
 
