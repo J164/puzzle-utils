@@ -6,6 +6,7 @@ pub type RgbBuffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
 pub const WHITE_PIXEL: Rgb<u8> = Rgb([255, 255, 255]);
 pub const BLACK_PIXEL: Rgb<u8> = Rgb([0, 0, 0]);
 pub const RED_PIXEL: Rgb<u8> = Rgb([255, 0, 0]);
+pub const GRAY_PIXEL: Rgb<u8> = Rgb([105, 105, 105]);
 
 pub fn choose_random<T>(vec: &mut Vec<T>) -> Option<T> {
     let idx = (0..vec.len()).choose(&mut thread_rng())?;

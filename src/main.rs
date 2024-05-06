@@ -14,7 +14,7 @@ use axum::{
 use cloudflare_image::serve_pair;
 use puzzles::{
     maze::{generate_maze, MazeAlgorithm},
-    nonogram::{solve_nonogram, Nonogram},
+    nonogram::solve_nonogram,
     sudoku::solve_sudoku,
 };
 use reqwest::{header, Client};
@@ -99,15 +99,18 @@ async fn maze(
 }
 
 async fn nonogram(
+    State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Nonogram>, StatusCode> {
-    Ok(axum::Json(
-        solve_nonogram(
-            params.get("row").ok_or(StatusCode::BAD_REQUEST)?,
-            params.get("col").ok_or(StatusCode::BAD_REQUEST)?,
-        )
-        .ok_or(StatusCode::BAD_REQUEST)?,
-    ))
+) -> Result<Json<Value>, StatusCode> {
+    let nonogram = solve_nonogram(
+        params.get("row").ok_or(StatusCode::BAD_REQUEST)?,
+        params.get("col").ok_or(StatusCode::BAD_REQUEST)?,
+    )
+    .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    serve_pair(&config.cloudflare_client, &config.cloudflare_id, &nonogram)
+        .await
+        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
 }
 
 async fn sudoku(
