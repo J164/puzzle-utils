@@ -93,8 +93,8 @@ pub fn generate_maze(
                     current = parent;
                 }
 
-                let unsolved = print_maze(width as u32, height as u32, &grid);
-                let solved = print_solution(unsolved.clone(), &solution);
+                let unsolved = print_maze(width as u32, height as u32, grid);
+                let solved = print_solution(unsolved.clone(), solution);
 
                 return Some((unsolved, solved));
             }
@@ -128,7 +128,7 @@ pub fn generate_maze(
     }
 }
 
-fn print_maze(width: u32, height: u32, grid: &[Node]) -> RgbBuffer {
+fn print_maze(width: u32, height: u32, grid: Vec<Node>) -> RgbBuffer {
     let mut img = RgbImage::from_pixel(width * 10 + 1, height * 10 + 1, WHITE_PIXEL);
 
     for row in 0..img.height() {
@@ -160,7 +160,7 @@ fn print_maze(width: u32, height: u32, grid: &[Node]) -> RgbBuffer {
     img
 }
 
-fn print_solution(mut image: RgbBuffer, solution: &[Direction]) -> RgbBuffer {
+fn print_solution(mut image: RgbBuffer, solution: Vec<Direction>) -> RgbBuffer {
     let mut x = 0;
     let mut y = 0;
 

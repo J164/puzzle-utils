@@ -10,14 +10,14 @@ const NUM_MAX: u8 = 9;
 pub const GRID_SIZE: usize = 9;
 const BOX_SIZE: usize = 3;
 
-pub fn solve_sudoku(original: &[u8]) -> Option<(RgbBuffer, RgbBuffer)> {
+pub fn solve_sudoku(original: Vec<u8>) -> Option<(RgbBuffer, RgbBuffer)> {
     let mut sudoku = original.to_owned();
     let mut stack = Vec::with_capacity(GRID_SIZE * GRID_SIZE);
 
     if let Some(square) = next_blank(&sudoku, 0) {
         stack.push(square);
     } else {
-        return Some((print_sudoku(original), print_sudoku(&sudoku)));
+        return Some((print_sudoku(original), print_sudoku(sudoku)));
     }
 
     while !stack.is_empty() {
@@ -34,7 +34,7 @@ pub fn solve_sudoku(original: &[u8]) -> Option<(RgbBuffer, RgbBuffer)> {
         if let Some(square) = next_blank(&sudoku, *index) {
             stack.push(square);
         } else {
-            return Some((print_sudoku(original), print_sudoku(&sudoku)));
+            return Some((print_sudoku(original), print_sudoku(sudoku)));
         }
     }
 
@@ -82,7 +82,7 @@ fn candidates(sudoku: &[u8], position: usize) -> Vec<u8> {
         .collect()
 }
 
-fn print_sudoku(sudoku: &[u8]) -> RgbBuffer {
+fn print_sudoku(sudoku: Vec<u8>) -> RgbBuffer {
     const IMAGE_SIZE: u32 = GRID_SIZE as u32 * 100;
 
     let mut image = RgbImage::from_pixel(IMAGE_SIZE, IMAGE_SIZE, WHITE_PIXEL);

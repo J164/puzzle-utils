@@ -93,7 +93,7 @@ async fn maze(
     let maze = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    serve_pair(&config.cloudflare_client, &config.cloudflare_id, &maze)
+    serve_pair(&config.cloudflare_client, &config.cloudflare_id, maze)
         .await
         .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
 }
@@ -108,7 +108,7 @@ async fn nonogram(
     )
     .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    serve_pair(&config.cloudflare_client, &config.cloudflare_id, &nonogram)
+    serve_pair(&config.cloudflare_client, &config.cloudflare_id, nonogram)
         .await
         .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
 }
@@ -138,9 +138,9 @@ async fn sudoku(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let sudoku = solve_sudoku(&puzzle).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let sudoku = solve_sudoku(puzzle).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    serve_pair(&config.cloudflare_client, &config.cloudflare_id, &sudoku)
+    serve_pair(&config.cloudflare_client, &config.cloudflare_id, sudoku)
         .await
         .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
 }

@@ -22,7 +22,7 @@ struct CloudflareImageResponse {
 pub async fn serve_pair(
     client: &Client,
     cloudflare_id: &str,
-    (solved, unsolved): &(RgbBuffer, RgbBuffer),
+    (solved, unsolved): (RgbBuffer, RgbBuffer),
 ) -> Result<Json<Value>, Error> {
     let (unsolved_response, solved_response) = join!(
         serve_image(client, cloudflare_id, unsolved),
@@ -37,7 +37,7 @@ pub async fn serve_pair(
 pub async fn serve_image(
     client: &Client,
     cloudflare_id: &str,
-    image: &RgbBuffer,
+    image: RgbBuffer,
 ) -> Result<Vec<String>, Error> {
     let mut bytes = Vec::new();
     image

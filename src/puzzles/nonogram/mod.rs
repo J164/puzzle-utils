@@ -40,7 +40,7 @@ pub fn solve_nonogram(row: &str, col: &str) -> Option<(RgbBuffer, RgbBuffer)> {
     let mut grid = vec![false; height * width];
     // TODO: solve nonogram
 
-    let solved = print_solution(width as u32, unsolved.clone(), &grid);
+    let solved = print_solution(width as u32, unsolved.clone(), grid);
 
     Some((unsolved, solved))
 }
@@ -103,7 +103,7 @@ fn print_nonogram(width: u32, height: u32, row: &[Vec<usize>], col: &[Vec<usize>
     image
 }
 
-fn print_solution(width: u32, mut image: RgbBuffer, grid: &[bool]) -> RgbBuffer {
+fn print_solution(width: u32, mut image: RgbBuffer, grid: Vec<bool>) -> RgbBuffer {
     for (i, square) in grid.iter().enumerate() {
         if !square {
             continue;
