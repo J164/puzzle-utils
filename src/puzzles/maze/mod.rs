@@ -2,11 +2,11 @@ mod recursive_backtrack;
 
 use std::collections::VecDeque;
 
-use image::{ImageBuffer, Rgb, RgbImage};
+use image::RgbImage;
 
 use crate::{
     puzzles::maze::recursive_backtrack::recursive_backtrack,
-    util::{BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
+    util::{RgbBuffer, BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
 };
 
 const MAX_DIMENSION: usize = 100;
@@ -45,9 +45,11 @@ enum PathNode {
     Unvisited,
 }
 
-type MazeImages = (ImageBuffer<Rgb<u8>, Vec<u8>>, ImageBuffer<Rgb<u8>, Vec<u8>>);
-
-pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> Option<MazeImages> {
+pub fn generate_maze(
+    width: usize,
+    height: usize,
+    algorithm: MazeAlgorithm,
+) -> Option<(RgbBuffer, RgbBuffer)> {
     if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
         return None;
     }
@@ -126,7 +128,7 @@ pub fn generate_maze(width: usize, height: usize, algorithm: MazeAlgorithm) -> O
     }
 }
 
-fn print_maze(width: u32, height: u32, grid: &[Node]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+fn print_maze(width: u32, height: u32, grid: &[Node]) -> RgbBuffer {
     let mut img = RgbImage::from_pixel(width * 10 + 1, height * 10 + 1, WHITE_PIXEL);
 
     for row in 0..img.height() {
@@ -158,10 +160,7 @@ fn print_maze(width: u32, height: u32, grid: &[Node]) -> ImageBuffer<Rgb<u8>, Ve
     img
 }
 
-fn print_solution(
-    mut image: ImageBuffer<Rgb<u8>, Vec<u8>>,
-    solution: &[Direction],
-) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+fn print_solution(mut image: RgbBuffer, solution: &[Direction]) -> RgbBuffer {
     let mut x = 0;
     let mut y = 0;
 

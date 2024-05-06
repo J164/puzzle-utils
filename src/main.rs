@@ -11,16 +11,17 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use cloudflare_image::serve_pair;
 use puzzles::{
     maze::{generate_maze, MazeAlgorithm},
     nonogram::{solve_nonogram, Nonogram},
     sudoku::solve_sudoku,
 };
 use reqwest::{header, Client};
-use serde_json::{json, Value};
-use tokio::{join, net::TcpListener};
+use serde_json::Value;
+use tokio::net::TcpListener;
 
-use crate::{cloudflare_image::serve_image, puzzles::sudoku::GRID_SIZE};
+use crate::puzzles::sudoku::GRID_SIZE;
 
 #[derive(Clone)]
 struct Config {
@@ -89,17 +90,12 @@ async fn maze(
         None => width,
     };
 
-    let (unsolved, solved) = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack)
+    let maze = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack)
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let (unsolved_response, solved_response) = join!(
-        serve_image(&config.cloudflare_client, &config.cloudflare_id, &unsolved),
-        serve_image(&config.cloudflare_client, &config.cloudflare_id, &solved)
-    );
-
-    Ok(Json(
-        json!({ "unsolved": unsolved_response.or(Err(StatusCode::INTERNAL_SERVER_ERROR))?, "solved": solved_response.or(Err(StatusCode::INTERNAL_SERVER_ERROR))? }),
-    ))
+    serve_pair(&config.cloudflare_client, &config.cloudflare_id, &maze)
+        .await
+        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
 }
 
 async fn nonogram(
@@ -115,8 +111,9 @@ async fn nonogram(
 }
 
 async fn sudoku(
+    State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Vec<u8>>, StatusCode> {
+) -> Result<Json<Value>, StatusCode> {
     let Some(raw_puzzle) = params.get("puzzle") else {
         return Err(StatusCode::BAD_REQUEST);
     };
@@ -138,7 +135,9 @@ async fn sudoku(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    Ok(axum::Json(
-        solve_sudoku(&puzzle).ok_or(StatusCode::BAD_REQUEST)?,
-    ))
+    let sudoku = solve_sudoku(&puzzle).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    serve_pair(&config.cloudflare_client, &config.cloudflare_id, &sudoku)
+        .await
+        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
 }

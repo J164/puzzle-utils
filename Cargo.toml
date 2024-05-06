@@ -9,8 +9,10 @@ edition = "2021"
 unwrap_used = "warn"
 
 [dependencies]
+ab_glyph = "0.2.25"
 axum = "0.7.5"
 image = "0.25.1"
+imageproc = "0.24.0"
 rand = "0.8.5"
 reqwest = { version = "0.12.4", features = ["multipart", "json"] }
 serde = { version = "1.0.200", features = ["derive"] }

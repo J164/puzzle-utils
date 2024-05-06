@@ -1,5 +1,7 @@
-use image::Rgb;
+use image::{ImageBuffer, Rgb};
 use rand::{seq::IteratorRandom, thread_rng};
+
+pub type RgbBuffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
 
 pub const WHITE_PIXEL: Rgb<u8> = Rgb([255, 255, 255]);
 pub const BLACK_PIXEL: Rgb<u8> = Rgb([0, 0, 0]);

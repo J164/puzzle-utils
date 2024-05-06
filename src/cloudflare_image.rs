@@ -1,8 +1,13 @@
 use std::io::Cursor;
 
-use image::{ImageBuffer, ImageFormat, Rgb};
+use axum::Json;
+use image::ImageFormat;
 use reqwest::{multipart::Form, Client, Error};
 use serde::Deserialize;
+use serde_json::{json, Value};
+use tokio::join;
+
+use crate::util::RgbBuffer;
 
 #[derive(Deserialize)]
 struct CloudflareImageResult {
@@ -14,10 +19,25 @@ struct CloudflareImageResponse {
     result: CloudflareImageResult,
 }
 
+pub async fn serve_pair(
+    client: &Client,
+    cloudflare_id: &str,
+    (solved, unsolved): &(RgbBuffer, RgbBuffer),
+) -> Result<Json<Value>, Error> {
+    let (unsolved_response, solved_response) = join!(
+        serve_image(client, cloudflare_id, unsolved),
+        serve_image(client, cloudflare_id, solved)
+    );
+
+    Ok(Json(
+        json!({ "unsolved": unsolved_response?, "solved": solved_response? }),
+    ))
+}
+
 pub async fn serve_image(
     client: &Client,
     cloudflare_id: &str,
-    image: &ImageBuffer<Rgb<u8>, Vec<u8>>,
+    image: &RgbBuffer,
 ) -> Result<Vec<String>, Error> {
     let mut bytes = Vec::new();
     image
