@@ -198,8 +198,6 @@ mod tests {
 
         let solution = solve(&original);
 
-        print_sudoku(original.clone()).save("medium.png").unwrap();
-
         assert!(solution.is_some());
 
         let solution = solution.expect("should be some");
@@ -241,8 +239,6 @@ mod tests {
         ];
 
         let solution = solve(&original);
-
-        print_sudoku(original.clone()).save("hard1.png").unwrap();
 
         assert!(solution.is_some());
 
@@ -287,8 +283,6 @@ mod tests {
 
         let solution = solve(&original);
 
-        print_sudoku(original.clone()).save("hard2.png").unwrap();
-
         assert!(solution.is_some());
 
         let solution = solution.expect("should be some");
@@ -331,8 +325,6 @@ mod tests {
         ];
 
         let solution = solve(&original);
-
-        print_sudoku(original.clone()).save("hard3.png").unwrap();
 
         assert!(solution.is_some());
 
