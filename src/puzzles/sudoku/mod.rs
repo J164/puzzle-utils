@@ -169,11 +169,7 @@ mod tests {
             2, 8, 7, 6, 3, 3, 8, 7, 5, 6, 1, 9, 4, 2, 6, 2, 9, 3, 4, 7, 5, 1, 8,
         ];
 
-        let solution = solve(&original);
-
-        assert!(solution.is_some());
-
-        let solution = solution.expect("should be some");
+        let solution = solve(&original).expect("should be some");
 
         assert_eq!(solution, expected);
 
@@ -211,11 +207,7 @@ mod tests {
             2, 7, 9, 8, 6, 7, 8, 2, 6, 9, 1, 4, 5, 3, 9, 6, 5, 8, 3, 4, 7, 1, 2,
         ];
 
-        let solution = solve(&original);
-
-        assert!(solution.is_some());
-
-        let solution = solution.expect("should be some");
+        let solution = solve(&original).expect("should be some");
 
         assert_eq!(solution, expected);
 
@@ -253,11 +245,7 @@ mod tests {
             4, 3, 7, 6, 5, 6, 3, 1, 2, 5, 7, 9, 4, 8, 5, 4, 7, 8, 9, 6, 2, 1, 3,
         ];
 
-        let solution = solve(&original);
-
-        assert!(solution.is_some());
-
-        let solution = solution.expect("should be some");
+        let solution = solve(&original).expect("should be some");
 
         assert_eq!(solution, expected);
 
@@ -296,11 +284,7 @@ mod tests {
             7, 4, 3, 6, 8, 4, 3, 8, 5, 2, 6, 9, 1, 7, 7, 9, 6, 3, 1, 8, 4, 5, 2,
         ];
 
-        let solution = solve(&original);
-
-        assert!(solution.is_some());
-
-        let solution = solution.expect("should be some");
+        let solution = solve(&original).expect("should be some");
 
         assert_eq!(solution, expected);
 
@@ -339,11 +323,7 @@ mod tests {
             4, 6, 2, 3, 7, 2, 5, 7, 8, 9, 3, 4, 6, 1, 3, 4, 6, 1, 2, 7, 9, 5, 8,
         ];
 
-        let solution = solve(&original);
-
-        assert!(solution.is_some());
-
-        let solution = solution.expect("should be some");
+        let solution = solve(&original).expect("should be some");
 
         assert_eq!(solution, expected);
 

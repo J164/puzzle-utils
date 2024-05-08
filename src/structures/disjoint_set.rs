@@ -154,23 +154,15 @@ mod tests {
         set.union(4, 5);
         set.union(5, 6);
 
-        assert!(set.find(0).is_some());
         assert_eq!(set.find(0).expect("should be some"), 0);
-        assert!(set.find(1).is_some());
         assert_eq!(set.find(1).expect("should be some"), 0);
-        assert!(set.find(2).is_some());
         assert_eq!(set.find(2).expect("should be some"), 0);
-        assert!(set.find(3).is_some());
         assert_eq!(set.find(3).expect("should be some"), 0);
 
-        assert!(set.find(4).is_some());
         assert_eq!(set.find(4).expect("should be some"), 4);
-        assert!(set.find(5).is_some());
         assert_eq!(set.find(5).expect("should be some"), 4);
-        assert!(set.find(6).is_some());
         assert_eq!(set.find(6).expect("should be some"), 4);
 
-        assert!(set.find(7).is_some());
         assert_eq!(set.find(7).expect("should be some"), 7);
 
         assert!(set.find(8).is_none());
@@ -202,16 +194,12 @@ mod tests {
 
         for i in 0..8 {
             for j in 0..8 {
-                assert!(set.common_set(i, j).is_some());
-
-                if i == j
+                let common = set.common_set(i, j).expect("should be some");
+                let expected = i == j
                     || (0..=3).contains(&i) && (0..=3).contains(&j)
-                    || (4..=6).contains(&i) && (4..=6).contains(&j)
-                {
-                    assert!(set.common_set(i, j).expect("should be some"));
-                } else {
-                    assert!(!set.common_set(i, j).expect("should be some"));
-                }
+                    || (4..=6).contains(&i) && (4..=6).contains(&j);
+
+                assert_eq!(common, expected);
             }
         }
 
