@@ -9,7 +9,7 @@ use crate::{
     util::{RgbBuffer, BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
 };
 
-const MAX_DIMENSION: usize = 100;
+pub const MAX_DIMENSION: usize = 100;
 
 pub enum MazeAlgorithm {
     RecursiveBacktrack,
@@ -49,11 +49,20 @@ pub fn generate_maze(
     width: usize,
     height: usize,
     algorithm: MazeAlgorithm,
-) -> Option<(RgbBuffer, RgbBuffer)> {
-    if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
-        return None;
-    }
+) -> (RgbBuffer, RgbBuffer) {
+    let (grid, solution) = create_maze(width, height, algorithm);
 
+    let unsolved = print_maze(width as u32, height as u32, grid);
+    let solved = print_solution(unsolved.clone(), solution);
+
+    (unsolved, solved)
+}
+
+fn create_maze(
+    width: usize,
+    height: usize,
+    algorithm: MazeAlgorithm,
+) -> (Vec<Node>, Vec<Direction>) {
     let mut grid = match algorithm {
         MazeAlgorithm::RecursiveBacktrack => recursive_backtrack(width, height),
     };
@@ -93,10 +102,7 @@ pub fn generate_maze(
                     current = parent;
                 }
 
-                let unsolved = print_maze(width as u32, height as u32, grid);
-                let solved = print_solution(unsolved.clone(), solution);
-
-                return Some((unsolved, solved));
+                return (grid, solution);
             }
         }
 

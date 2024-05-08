@@ -13,15 +13,13 @@ use axum::{
 };
 use cloudflare_image::serve_pair;
 use puzzles::{
-    maze::{generate_maze, MazeAlgorithm},
-    nonogram::solve_nonogram,
-    sudoku::solve_sudoku,
+    maze::{generate_maze, MazeAlgorithm, MAX_DIMENSION},
+    nonogram::{parse_rule, solve_nonogram},
+    sudoku::{parse_sudoku, solve_sudoku, GRID_SIZE},
 };
 use reqwest::{header, Client};
 use serde_json::Value;
 use tokio::net::TcpListener;
-
-use crate::puzzles::sudoku::GRID_SIZE;
 
 #[derive(Clone)]
 struct Config {
@@ -90,8 +88,11 @@ async fn maze(
         None => width,
     };
 
-    let maze = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack)
-        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let maze = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack);
 
     serve_pair(&config.cloudflare_client, &config.cloudflare_id, maze)
         .await
@@ -102,11 +103,20 @@ async fn nonogram(
     State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, StatusCode> {
-    let nonogram = solve_nonogram(
-        params.get("row").ok_or(StatusCode::BAD_REQUEST)?,
-        params.get("col").ok_or(StatusCode::BAD_REQUEST)?,
-    )
-    .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let row = params.get("row").ok_or(StatusCode::BAD_REQUEST)?;
+    let col = params.get("col").ok_or(StatusCode::BAD_REQUEST)?;
+
+    let height = row.split(';').count();
+    let width = col.split(';').count();
+
+    if height == 0 || width == 0 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let col = parse_rule(col, height).ok_or(StatusCode::BAD_REQUEST)?;
+    let row = parse_rule(row, width).ok_or(StatusCode::BAD_REQUEST)?;
+
+    let nonogram = solve_nonogram(col, row).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     serve_pair(&config.cloudflare_client, &config.cloudflare_id, nonogram)
         .await
@@ -117,22 +127,8 @@ async fn sudoku(
     State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Value>, StatusCode> {
-    let Some(raw_puzzle) = params.get("puzzle") else {
-        return Err(StatusCode::BAD_REQUEST);
-    };
-
-    let puzzle = raw_puzzle
-        .chars()
-        .map(|x| {
-            let value = x.to_digit(10).ok_or(StatusCode::BAD_REQUEST)?;
-
-            if (0..=9).contains(&value) {
-                return Ok(value as u8);
-            }
-
-            Err(StatusCode::BAD_REQUEST)
-        })
-        .collect::<Result<Vec<u8>, StatusCode>>()?;
+    let puzzle = params.get("puzzle").ok_or(StatusCode::BAD_REQUEST)?;
+    let puzzle = parse_sudoku(puzzle).ok_or(StatusCode::BAD_REQUEST)?;
 
     if puzzle.len() != GRID_SIZE * GRID_SIZE {
         return Err(StatusCode::BAD_REQUEST);

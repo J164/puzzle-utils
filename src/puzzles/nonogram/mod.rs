@@ -7,7 +7,9 @@ use imageproc::{
 
 use crate::util::{RgbBuffer, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
-fn parse_rule(rule: &str, rule_height: usize) -> Option<Vec<Vec<usize>>> {
+type Rule = Vec<Vec<usize>>;
+
+pub fn parse_rule(rule: &str, rule_height: usize) -> Option<Rule> {
     rule.split(';')
         .map(|rule| {
             let rule = rule
@@ -21,31 +23,29 @@ fn parse_rule(rule: &str, rule_height: usize) -> Option<Vec<Vec<usize>>> {
             }
             Some(rule)
         })
-        .collect::<Option<Vec<Vec<usize>>>>()
+        .collect::<Option<Rule>>()
 }
 
-pub fn solve_nonogram(row: &str, col: &str) -> Option<(RgbBuffer, RgbBuffer)> {
-    let height = row.split(';').count();
-    let width = col.split(';').count();
-
-    if height == 0 || width == 0 {
-        return None;
-    }
-
-    let row = parse_rule(row, width)?;
-    let col = parse_rule(col, height)?;
+pub fn solve_nonogram(col: Rule, row: Rule) -> Option<(RgbBuffer, RgbBuffer)> {
+    let width = col.len();
+    let height = row.len();
 
     let unsolved = print_nonogram(width as u32, height as u32, &row, &col);
 
-    let mut grid = vec![false; height * width];
-    // TODO: solve nonogram
+    let grid = solve(width, height, col, row)?;
 
     let solved = print_solution(width as u32, unsolved.clone(), grid);
 
     Some((unsolved, solved))
 }
 
-fn print_nonogram(width: u32, height: u32, row: &[Vec<usize>], col: &[Vec<usize>]) -> RgbBuffer {
+fn solve(width: usize, height: usize, col: Rule, row: Rule) -> Option<Vec<bool>> {
+    let mut grid = vec![false; width * height];
+    // TODO: solve nonogram
+    Some(grid)
+}
+
+fn print_nonogram(width: u32, height: u32, row: &Rule, col: &Rule) -> RgbBuffer {
     let mut image = ImageBuffer::from_pixel(width * 50 + 150, height * 50 + 150, WHITE_PIXEL);
 
     let font = FontRef::try_from_slice(ROBOTO_MEDIUM).expect("Font should be valid");

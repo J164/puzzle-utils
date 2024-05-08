@@ -10,6 +10,21 @@ const NUM_MAX: u8 = 9;
 pub const GRID_SIZE: usize = 9;
 const BOX_SIZE: usize = 3;
 
+pub fn parse_sudoku(puzzle: &str) -> Option<Vec<u8>> {
+    puzzle
+        .chars()
+        .map(|x| {
+            let value = x.to_digit(10)?;
+
+            if (0..=9).contains(&value) {
+                return Some(value as u8);
+            }
+
+            None
+        })
+        .collect::<Option<Vec<u8>>>()
+}
+
 pub fn solve_sudoku(original: Vec<u8>) -> Option<(RgbBuffer, RgbBuffer)> {
     let solved = solve(&original)?;
     Some((print_sudoku(original), print_sudoku(solved)))
