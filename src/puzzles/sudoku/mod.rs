@@ -137,6 +137,10 @@ fn print_sudoku(sudoku: Vec<u8>) -> RgbBuffer {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
+    use image::ImageFormat;
+
     use super::*;
 
     #[test]
@@ -156,7 +160,21 @@ mod tests {
 
         assert!(solution.is_some());
 
-        assert_eq!(solution.expect("should be some"), expected);
+        let solution = solution.expect("should be some");
+
+        assert_eq!(solution, expected);
+
+        let mut unsolved_image = Vec::new();
+        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/easy.png"));
+
+        let mut solved_image = Vec::new();
+        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/easy.png"));
     }
 
     #[test]
@@ -174,13 +192,29 @@ mod tests {
 
         let solution = solve(&original);
 
+        print_sudoku(original.clone()).save("medium.png").unwrap();
+
         assert!(solution.is_some());
 
-        assert_eq!(solution.expect("should be some"), expected);
+        let solution = solution.expect("should be some");
+
+        assert_eq!(solution, expected);
+
+        let mut unsolved_image = Vec::new();
+        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/medium.png"));
+
+        let mut solved_image = Vec::new();
+        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/medium.png"));
     }
 
     #[test]
-    fn hard_solve() {
+    fn hard_solve1() {
         let original = vec![
             0, 0, 0, 0, 3, 0, 4, 0, 0, 9, 0, 0, 4, 0, 0, 3, 0, 0, 3, 0, 0, 0, 0, 0, 0, 7, 2, 0, 0,
             9, 0, 0, 5, 0, 0, 0, 8, 0, 0, 0, 1, 0, 0, 0, 0, 7, 0, 0, 6, 0, 0, 5, 2, 9, 0, 0, 0, 1,
@@ -194,9 +228,25 @@ mod tests {
 
         let solution = solve(&original);
 
+        print_sudoku(original.clone()).save("hard1.png").unwrap();
+
         assert!(solution.is_some());
 
-        assert_eq!(solution.expect("should be some"), expected);
+        let solution = solution.expect("should be some");
+
+        assert_eq!(solution, expected);
+
+        let mut unsolved_image = Vec::new();
+        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/hard1.png"));
+
+        let mut solved_image = Vec::new();
+        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/hard1.png"));
     }
 
     #[test]
@@ -215,9 +265,25 @@ mod tests {
 
         let solution = solve(&original);
 
+        print_sudoku(original.clone()).save("hard2.png").unwrap();
+
         assert!(solution.is_some());
 
-        assert_eq!(solution.expect("should be some"), expected);
+        let solution = solution.expect("should be some");
+
+        assert_eq!(solution, expected);
+
+        let mut unsolved_image = Vec::new();
+        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/hard2.png"));
+
+        let mut solved_image = Vec::new();
+        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/hard2.png"));
     }
 
     #[test]
@@ -236,8 +302,24 @@ mod tests {
 
         let solution = solve(&original);
 
+        print_sudoku(original.clone()).save("hard3.png").unwrap();
+
         assert!(solution.is_some());
 
-        assert_eq!(solution.expect("should be some"), expected);
+        let solution = solution.expect("should be some");
+
+        assert_eq!(solution, expected);
+
+        let mut unsolved_image = Vec::new();
+        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/hard3.png"));
+
+        let mut solved_image = Vec::new();
+        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        assert!(write_result.is_ok());
+
+        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/hard3.png"));
     }
 }
