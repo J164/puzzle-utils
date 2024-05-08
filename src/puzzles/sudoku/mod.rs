@@ -2,7 +2,7 @@ use ab_glyph::FontRef;
 use image::RgbImage;
 use imageproc::drawing::draw_text_mut;
 
-use crate::util::{RgbBuffer, BLACK_PIXEL, WHITE_PIXEL};
+use crate::util::{RgbBuffer, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
 const NUM_MIN: u8 = 1;
 const NUM_MAX: u8 = 9;
@@ -92,9 +92,7 @@ fn print_sudoku(sudoku: Vec<u8>) -> RgbBuffer {
 
     let mut image = RgbImage::from_pixel(IMAGE_SIZE, IMAGE_SIZE, WHITE_PIXEL);
 
-    let font =
-        FontRef::try_from_slice(include_bytes!("../../../resources/Roboto-Medium.ttf") as &[u8])
-            .expect("Font should be valid");
+    let font = FontRef::try_from_slice(ROBOTO_MEDIUM).expect("Font should be valid");
 
     for grid_pos in 0..(GRID_SIZE as u32) {
         for line_coord in 0..IMAGE_SIZE {
@@ -165,16 +163,24 @@ mod tests {
         assert_eq!(solution, expected);
 
         let mut unsolved_image = Vec::new();
-        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        let write_result = print_sudoku(original)
+            .write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/easy.png"));
+        assert_eq!(
+            unsolved_image,
+            include_bytes!("../../../tests/sudoku/unsolved/easy.png")
+        );
 
         let mut solved_image = Vec::new();
-        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        let write_result =
+            print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/easy.png"));
+        assert_eq!(
+            solved_image,
+            include_bytes!("../../../tests/sudoku/solved/easy.png")
+        );
     }
 
     #[test]
@@ -201,16 +207,24 @@ mod tests {
         assert_eq!(solution, expected);
 
         let mut unsolved_image = Vec::new();
-        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        let write_result = print_sudoku(original)
+            .write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/medium.png"));
+        assert_eq!(
+            unsolved_image,
+            include_bytes!("../../../tests/sudoku/unsolved/medium.png")
+        );
 
         let mut solved_image = Vec::new();
-        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        let write_result =
+            print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/medium.png"));
+        assert_eq!(
+            solved_image,
+            include_bytes!("../../../tests/sudoku/solved/medium.png")
+        );
     }
 
     #[test]
@@ -237,16 +251,24 @@ mod tests {
         assert_eq!(solution, expected);
 
         let mut unsolved_image = Vec::new();
-        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        let write_result = print_sudoku(original)
+            .write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/hard1.png"));
+        assert_eq!(
+            unsolved_image,
+            include_bytes!("../../../tests/sudoku/unsolved/hard1.png")
+        );
 
         let mut solved_image = Vec::new();
-        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        let write_result =
+            print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/hard1.png"));
+        assert_eq!(
+            solved_image,
+            include_bytes!("../../../tests/sudoku/solved/hard1.png")
+        );
     }
 
     #[test]
@@ -274,16 +296,24 @@ mod tests {
         assert_eq!(solution, expected);
 
         let mut unsolved_image = Vec::new();
-        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        let write_result = print_sudoku(original)
+            .write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/hard2.png"));
+        assert_eq!(
+            unsolved_image,
+            include_bytes!("../../../tests/sudoku/unsolved/hard2.png")
+        );
 
         let mut solved_image = Vec::new();
-        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        let write_result =
+            print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/hard2.png"));
+        assert_eq!(
+            solved_image,
+            include_bytes!("../../../tests/sudoku/solved/hard2.png")
+        );
     }
 
     #[test]
@@ -311,15 +341,23 @@ mod tests {
         assert_eq!(solution, expected);
 
         let mut unsolved_image = Vec::new();
-        let write_result = print_sudoku(original).write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
+        let write_result = print_sudoku(original)
+            .write_to(&mut Cursor::new(&mut unsolved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(unsolved_image, include_bytes!("../../../tests/sudoku/unsolved/hard3.png"));
+        assert_eq!(
+            unsolved_image,
+            include_bytes!("../../../tests/sudoku/unsolved/hard3.png")
+        );
 
         let mut solved_image = Vec::new();
-        let write_result = print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
+        let write_result =
+            print_sudoku(solution).write_to(&mut Cursor::new(&mut solved_image), ImageFormat::Png);
         assert!(write_result.is_ok());
 
-        assert_eq!(solved_image, include_bytes!("../../../tests/sudoku/solved/hard3.png"));
+        assert_eq!(
+            solved_image,
+            include_bytes!("../../../tests/sudoku/solved/hard3.png")
+        );
     }
 }

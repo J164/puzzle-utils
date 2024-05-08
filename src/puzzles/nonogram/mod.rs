@@ -5,7 +5,7 @@ use imageproc::{
     rect::Rect,
 };
 
-use crate::util::{RgbBuffer, BLACK_PIXEL, GRAY_PIXEL, WHITE_PIXEL};
+use crate::util::{RgbBuffer, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
 fn parse_rule(rule: &str, rule_height: usize) -> Option<Vec<Vec<usize>>> {
     rule.split(';')
@@ -48,9 +48,7 @@ pub fn solve_nonogram(row: &str, col: &str) -> Option<(RgbBuffer, RgbBuffer)> {
 fn print_nonogram(width: u32, height: u32, row: &[Vec<usize>], col: &[Vec<usize>]) -> RgbBuffer {
     let mut image = ImageBuffer::from_pixel(width * 50 + 150, height * 50 + 150, WHITE_PIXEL);
 
-    let font =
-        FontRef::try_from_slice(include_bytes!("../../../resources/Roboto-Medium.ttf") as &[u8])
-            .expect("Font should be valid");
+    let font = FontRef::try_from_slice(ROBOTO_MEDIUM).expect("Font should be valid");
 
     for (y, rule_set) in row.iter().enumerate() {
         let y = (y as u32) * 50 + 160;
