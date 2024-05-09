@@ -3,16 +3,41 @@ mod recursive_backtrack;
 use std::collections::VecDeque;
 
 use image::RgbImage;
+use thiserror::Error;
 
 use crate::{
+    cloudflare_image::SolutionPair,
     puzzles::maze::recursive_backtrack::recursive_backtrack,
     util::{RgbBuffer, BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
 };
 
-pub const MAX_DIMENSION: usize = 100;
+const MAX_DIMENSION: usize = 100;
+
+#[derive(Debug, Error)]
+pub enum MazeError {
+    #[error("invalid dimension, max dimension is `{}`", MAX_DIMENSION)]
+    InvalidDimension,
+}
 
 pub enum MazeAlgorithm {
     RecursiveBacktrack,
+}
+
+pub fn generate_maze(
+    width: usize,
+    height: usize,
+    algorithm: MazeAlgorithm,
+) -> Result<SolutionPair, MazeError> {
+    if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
+        return Err(MazeError::InvalidDimension);
+    }
+
+    let (grid, solution) = create_maze(width, height, algorithm);
+
+    let unsolved = print_maze(width as u32, height as u32, grid);
+    let solved = print_solution(unsolved.clone(), solution);
+
+    Ok(SolutionPair::new(unsolved, solved))
 }
 
 #[derive(Clone)]
@@ -43,19 +68,6 @@ enum PathNode {
     Start,
     Path(usize),
     Unvisited,
-}
-
-pub fn generate_maze(
-    width: usize,
-    height: usize,
-    algorithm: MazeAlgorithm,
-) -> (RgbBuffer, RgbBuffer) {
-    let (grid, solution) = create_maze(width, height, algorithm);
-
-    let unsolved = print_maze(width as u32, height as u32, grid);
-    let solved = print_solution(unsolved.clone(), solution);
-
-    (unsolved, solved)
 }
 
 fn create_maze(

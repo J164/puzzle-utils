@@ -8,18 +8,53 @@ use std::{collections::HashMap, env};
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
 use cloudflare_image::serve_pair;
 use puzzles::{
-    maze::{generate_maze, MazeAlgorithm, MAX_DIMENSION},
-    nonogram::{parse_rule, solve_nonogram},
-    sudoku::{parse_sudoku, solve_sudoku, GRID_SIZE},
+    maze::{generate_maze, MazeAlgorithm, MazeError},
+    nonogram::{solve_nonogram, NonogramError},
+    sudoku::{parse_sudoku, solve_sudoku, SudokuError},
 };
 use reqwest::{header, Client};
 use serde_json::Value;
 use tokio::net::TcpListener;
+
+enum Error<PuzzleError: IntoResponse> {
+    MissingArgument(&'static str),
+    InvalidArgument(&'static str),
+    Puzzle(PuzzleError),
+    Cloudflare(reqwest::Error),
+}
+
+impl<T: IntoResponse> IntoResponse for Error<T> {
+    fn into_response(self) -> Response {
+        match self {
+            Error::MissingArgument(arg) => (
+                StatusCode::BAD_REQUEST,
+                format!("must specify `{}` argument", arg),
+            )
+                .into_response(),
+            Error::InvalidArgument(message) => {
+                (StatusCode::BAD_REQUEST, message.to_string()).into_response()
+            }
+            Error::Puzzle(response) => response.into_response(),
+            Error::Cloudflare(error) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!(
+                    "Cloudflare request failed {}",
+                    match error.status() {
+                        Some(status) => format!("with error code {}", status),
+                        None => "without error code".to_string(),
+                    }
+                ),
+            )
+                .into_response(),
+        }
+    }
+}
 
 #[derive(Clone)]
 struct Config {
@@ -73,70 +108,75 @@ async fn main() {
     };
 }
 
+impl IntoResponse for MazeError {
+    fn into_response(self) -> Response {
+        (StatusCode::BAD_REQUEST, format!("{}", self)).into_response()
+    }
+}
+
 async fn maze(
     State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Value>, StatusCode> {
+) -> Result<Json<Value>, Error<MazeError>> {
     let width = params
         .get("width")
-        .ok_or(StatusCode::BAD_REQUEST)?
+        .ok_or(Error::MissingArgument("width"))?
         .parse::<usize>()
-        .or(Err(StatusCode::BAD_REQUEST))?;
+        .or(Err(Error::InvalidArgument("width is not a valid integer")))?;
 
     let height = match params.get("height") {
-        Some(height) => height.parse::<usize>().or(Err(StatusCode::BAD_REQUEST))?,
+        Some(height) => height
+            .parse::<usize>()
+            .or(Err(Error::InvalidArgument("height is not a valid integer")))?,
         None => width,
     };
 
-    if !(1..=MAX_DIMENSION).contains(&width) || !(1..=MAX_DIMENSION).contains(&height) {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let maze = generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack);
+    let maze =
+        generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack).map_err(Error::Puzzle)?;
 
     serve_pair(&config.cloudflare_client, &config.cloudflare_id, maze)
         .await
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(Error::Cloudflare)
+}
+
+impl IntoResponse for NonogramError {
+    fn into_response(self) -> Response {
+        (StatusCode::BAD_REQUEST, format!("{}", self)).into_response()
+    }
 }
 
 async fn nonogram(
     State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Value>, StatusCode> {
-    let row = params.get("row").ok_or(StatusCode::BAD_REQUEST)?;
-    let col = params.get("col").ok_or(StatusCode::BAD_REQUEST)?;
+) -> Result<Json<Value>, Error<NonogramError>> {
+    let row = params.get("row").ok_or(Error::MissingArgument("row"))?;
+    let col = params.get("col").ok_or(Error::MissingArgument("col"))?;
 
-    let height = row.split(';').count();
-    let width = col.split(';').count();
-
-    if height == 0 || width == 0 {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let col = parse_rule(col, height).ok_or(StatusCode::BAD_REQUEST)?;
-    let row = parse_rule(row, width).ok_or(StatusCode::BAD_REQUEST)?;
-
-    let nonogram = solve_nonogram(col, row).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let nonogram = solve_nonogram(col, row).map_err(Error::Puzzle)?;
 
     serve_pair(&config.cloudflare_client, &config.cloudflare_id, nonogram)
         .await
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(Error::Cloudflare)
+}
+
+impl IntoResponse for SudokuError {
+    fn into_response(self) -> Response {
+        (StatusCode::BAD_REQUEST, format!("{}", self)).into_response()
+    }
 }
 
 async fn sudoku(
     State(config): State<Config>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Value>, StatusCode> {
-    let puzzle = params.get("puzzle").ok_or(StatusCode::BAD_REQUEST)?;
-    let puzzle = parse_sudoku(puzzle).ok_or(StatusCode::BAD_REQUEST)?;
-
-    if puzzle.len() != GRID_SIZE * GRID_SIZE {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let sudoku = solve_sudoku(puzzle).ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> Result<Json<Value>, Error<SudokuError>> {
+    let puzzle = params
+        .get("puzzle")
+        .ok_or(Error::MissingArgument("puzzle"))?;
+    let sudoku = parse_sudoku(puzzle)
+        .and_then(solve_sudoku)
+        .map_err(Error::Puzzle)?;
 
     serve_pair(&config.cloudflare_client, &config.cloudflare_id, sudoku)
         .await
-        .or(Err(StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(Error::Cloudflare)
 }

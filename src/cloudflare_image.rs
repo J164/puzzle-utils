@@ -19,10 +19,21 @@ struct CloudflareImageResponse {
     result: CloudflareImageResult,
 }
 
+pub struct SolutionPair {
+    unsolved: RgbBuffer,
+    solved: RgbBuffer,
+}
+
+impl SolutionPair {
+    pub fn new(unsolved: RgbBuffer, solved: RgbBuffer) -> Self {
+        SolutionPair { unsolved, solved }
+    }
+}
+
 pub async fn serve_pair(
     client: &Client,
     cloudflare_id: &str,
-    (solved, unsolved): (RgbBuffer, RgbBuffer),
+    SolutionPair { solved, unsolved }: SolutionPair,
 ) -> Result<Json<Value>, Error> {
     let (unsolved_response, solved_response) = join!(
         serve_image(client, cloudflare_id, unsolved),

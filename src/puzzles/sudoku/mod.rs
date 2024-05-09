@@ -1,43 +1,66 @@
 use ab_glyph::FontRef;
 use image::RgbImage;
 use imageproc::drawing::draw_text_mut;
+use thiserror::Error;
 
-use crate::util::{RgbBuffer, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
+use crate::{
+    cloudflare_image::SolutionPair,
+    util::{RgbBuffer, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
+};
 
 const NUM_MIN: u8 = 1;
 const NUM_MAX: u8 = 9;
 
-pub const GRID_SIZE: usize = 9;
+const GRID_SIZE: usize = 9;
 const BOX_SIZE: usize = 3;
 
-pub fn parse_sudoku(puzzle: &str) -> Option<Vec<u8>> {
-    puzzle
-        .chars()
-        .map(|x| {
-            let value = x.to_digit(10)?;
+#[derive(Debug, Error)]
+pub enum SudokuError {
+    #[error("invalid integer `{0}`, must be integer 1-9 (use `0` for an empty space)")]
+    InvalidInteger(char),
+    #[error("sudoku must by 9 x 9, got {0} entries")]
+    InvalidSize(usize),
+    #[error("sudoku has no solution")]
+    NoSolution,
+}
 
-            if (0..=9).contains(&value) {
-                return Some(value as u8);
+pub fn parse_sudoku(puzzle: &str) -> Result<Vec<u8>, SudokuError> {
+    let puzzle = puzzle
+        .chars()
+        .map(|char| {
+            if let Some(value) = char.to_digit(10) {
+                if (0..=9).contains(&value) {
+                    return Ok(value as u8);
+                }
             }
 
-            None
+            Err(SudokuError::InvalidInteger(char))
         })
-        .collect::<Option<Vec<u8>>>()
+        .collect::<Result<Vec<u8>, SudokuError>>()?;
+
+    if puzzle.len() != GRID_SIZE * GRID_SIZE {
+        return Err(SudokuError::InvalidSize(puzzle.len()));
+    }
+
+    Ok(puzzle)
 }
 
-pub fn solve_sudoku(original: Vec<u8>) -> Option<(RgbBuffer, RgbBuffer)> {
+pub fn solve_sudoku(original: Vec<u8>) -> Result<SolutionPair, SudokuError> {
     let solved = solve(&original)?;
-    Some((print_sudoku(original), print_sudoku(solved)))
+    Ok(SolutionPair::new(
+        print_sudoku(original),
+        print_sudoku(solved),
+    ))
 }
 
-fn solve(original: &Vec<u8>) -> Option<Vec<u8>> {
+fn solve(original: &Vec<u8>) -> Result<Vec<u8>, SudokuError> {
     let mut sudoku = original.to_owned();
     let mut stack = Vec::with_capacity(GRID_SIZE * GRID_SIZE);
 
     if let Some(square) = next_blank(&sudoku, 0) {
         stack.push(square);
     } else {
-        return Some(sudoku);
+        return Ok(sudoku);
     }
 
     while !stack.is_empty() {
@@ -54,11 +77,11 @@ fn solve(original: &Vec<u8>) -> Option<Vec<u8>> {
         if let Some(square) = next_blank(&sudoku, *index) {
             stack.push(square);
         } else {
-            return Some(sudoku);
+            return Ok(sudoku);
         }
     }
 
-    None
+    Err(SudokuError::NoSolution)
 }
 
 struct Square {
@@ -169,7 +192,7 @@ mod tests {
             2, 8, 7, 6, 3, 3, 8, 7, 5, 6, 1, 9, 4, 2, 6, 2, 9, 3, 4, 7, 5, 1, 8,
         ];
 
-        let solution = solve(&original).expect("should be some");
+        let solution = solve(&original).expect("should be ok");
 
         assert_eq!(solution, expected);
 
@@ -207,7 +230,7 @@ mod tests {
             2, 7, 9, 8, 6, 7, 8, 2, 6, 9, 1, 4, 5, 3, 9, 6, 5, 8, 3, 4, 7, 1, 2,
         ];
 
-        let solution = solve(&original).expect("should be some");
+        let solution = solve(&original).expect("should be ok");
 
         assert_eq!(solution, expected);
 
@@ -245,7 +268,7 @@ mod tests {
             4, 3, 7, 6, 5, 6, 3, 1, 2, 5, 7, 9, 4, 8, 5, 4, 7, 8, 9, 6, 2, 1, 3,
         ];
 
-        let solution = solve(&original).expect("should be some");
+        let solution = solve(&original).expect("should be ok");
 
         assert_eq!(solution, expected);
 
@@ -284,7 +307,7 @@ mod tests {
             7, 4, 3, 6, 8, 4, 3, 8, 5, 2, 6, 9, 1, 7, 7, 9, 6, 3, 1, 8, 4, 5, 2,
         ];
 
-        let solution = solve(&original).expect("should be some");
+        let solution = solve(&original).expect("should be ok");
 
         assert_eq!(solution, expected);
 
@@ -323,7 +346,7 @@ mod tests {
             4, 6, 2, 3, 7, 2, 5, 7, 8, 9, 3, 4, 6, 1, 3, 4, 6, 1, 2, 7, 9, 5, 8,
         ];
 
-        let solution = solve(&original).expect("should be some");
+        let solution = solve(&original).expect("should be ok");
 
         assert_eq!(solution, expected);
 
