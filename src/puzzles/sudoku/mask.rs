@@ -1,9 +1,9 @@
 use super::{BOX_SIZE, GRID_SIZE, NUM_MAX, NUM_MIN};
 
 pub struct Mask {
-    rows: Vec<u16>,
-    cols: Vec<u16>,
-    boxes: Vec<u16>,
+    rows: [u16; 9],
+    cols: [u16; 9],
+    boxes: [u16; 9],
 }
 
 fn indicies(index: usize) -> (usize, usize, usize) {
@@ -15,9 +15,9 @@ fn indicies(index: usize) -> (usize, usize, usize) {
 impl Mask {
     pub fn new() -> Self {
         Mask {
-            rows: vec![0u16; GRID_SIZE],
-            cols: vec![0u16; GRID_SIZE],
-            boxes: vec![0u16; GRID_SIZE],
+            rows: [0u16; 9],
+            cols: [0u16; 9],
+            boxes: [0u16; 9],
         }
     }
 
