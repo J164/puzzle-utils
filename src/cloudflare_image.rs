@@ -52,7 +52,7 @@ pub async fn serve_image(
 ) -> Result<Vec<String>, Error> {
     let mut bytes = Vec::new();
     image
-        .write_to(&mut Cursor::new(&mut bytes), ImageFormat::Jpeg)
+        .write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
         .expect("image should be valid");
     let form = Form::new().part("file", reqwest::multipart::Part::bytes(bytes));
 
