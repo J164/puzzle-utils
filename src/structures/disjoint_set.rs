@@ -25,6 +25,7 @@ impl Element {
 }
 
 impl DisjointSet {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         DisjointSet {
             elements: Vec::new(),
@@ -37,6 +38,7 @@ impl DisjointSet {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add(&mut self) {
         self.elements.push(Element::new());
     }
