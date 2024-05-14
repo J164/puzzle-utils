@@ -2,22 +2,12 @@ use std::io::Cursor;
 
 use axum::Json;
 use image::ImageFormat;
-use reqwest::{multipart::Form, Client, Error};
-use serde::Deserialize;
+use reqwest::{Client, Error};
 use serde_json::{json, Value};
+use sha256::digest;
 use tokio::join;
 
 use crate::util::RgbBuffer;
-
-#[derive(Deserialize)]
-struct CloudflareImageResult {
-    variants: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct CloudflareImageResponse {
-    result: CloudflareImageResult,
-}
 
 pub struct SolutionPair {
     unsolved: RgbBuffer,
@@ -47,24 +37,22 @@ pub async fn serve_pair(
 
 pub async fn serve_image(
     client: &Client,
-    cloudflare_id: &str,
+    cloudflare_url: &str,
     image: RgbBuffer,
-) -> Result<Vec<String>, Error> {
+) -> Result<String, Error> {
     let mut bytes = Vec::new();
     image
         .write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
         .expect("image should be valid");
-    let form = Form::new().part("file", reqwest::multipart::Part::bytes(bytes));
+
+    let hash = digest(&bytes);
 
     let request = client
-        .post(format!(
-            "https://api.cloudflare.com/client/v4/accounts/{}/images/v1",
-            cloudflare_id
-        ))
-        .multipart(form)
+        .post(format!("{}/api/images/?key={}", cloudflare_url, hash))
+        .body(bytes)
         .send();
 
-    let unsolved_response = request.await?.json::<CloudflareImageResponse>().await?;
+    request.await?;
 
-    Ok(unsolved_response.result.variants)
+    Ok(hash)
 }

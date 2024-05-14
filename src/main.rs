@@ -7,7 +7,7 @@ use std::{collections::HashMap, env};
 
 use axum::{
     extract::{Query, State},
-    http::{HeaderMap, HeaderValue, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
     Json, Router,
@@ -18,7 +18,7 @@ use puzzles::{
     nonogram::{solve_nonogram, NonogramError},
     sudoku::{parse_sudoku, solve_sudoku, SudokuError},
 };
-use reqwest::{header, Client};
+use reqwest::Client;
 use serde_json::Value;
 use tokio::net::TcpListener;
 
@@ -58,7 +58,7 @@ impl<T: IntoResponse> IntoResponse for Error<T> {
 
 #[derive(Clone)]
 struct Config {
-    cloudflare_id: String,
+    cloudflare_url: String,
     cloudflare_client: Client,
 }
 
@@ -66,28 +66,17 @@ struct Config {
 async fn main() {
     let env = env::args().collect::<Vec<String>>();
 
-    if env.len() < 3 {
+    if env.len() < 2 {
         println!("Missing arguments");
         return;
     }
 
-    let mut headers = HeaderMap::new();
-
-    let Ok(mut auth_value) = HeaderValue::from_str(&format!("bearer {}", env[2])) else {
-        println!("bearer token contains invalid characters");
-        return;
-    };
-
-    auth_value.set_sensitive(true);
-    headers.insert(header::AUTHORIZATION, auth_value);
-
     let cloudflare_client = Client::builder()
-        .default_headers(headers)
         .build()
         .expect("client should be formed correctly");
 
     let config = Config {
-        cloudflare_id: env[1].clone(),
+        cloudflare_url: env[1].clone(),
         cloudflare_client,
     };
 
@@ -134,7 +123,7 @@ async fn maze(
     let maze =
         generate_maze(width, height, MazeAlgorithm::RecursiveBacktrack).map_err(Error::Puzzle)?;
 
-    serve_pair(&config.cloudflare_client, &config.cloudflare_id, maze)
+    serve_pair(&config.cloudflare_client, &config.cloudflare_url, maze)
         .await
         .map_err(Error::Cloudflare)
 }
@@ -154,7 +143,7 @@ async fn nonogram(
 
     let nonogram = solve_nonogram(col, row).map_err(Error::Puzzle)?;
 
-    serve_pair(&config.cloudflare_client, &config.cloudflare_id, nonogram)
+    serve_pair(&config.cloudflare_client, &config.cloudflare_url, nonogram)
         .await
         .map_err(Error::Cloudflare)
 }
@@ -176,7 +165,7 @@ async fn sudoku(
         .and_then(solve_sudoku)
         .map_err(Error::Puzzle)?;
 
-    serve_pair(&config.cloudflare_client, &config.cloudflare_id, sudoku)
+    serve_pair(&config.cloudflare_client, &config.cloudflare_url, sudoku)
         .await
         .map_err(Error::Cloudflare)
 }
