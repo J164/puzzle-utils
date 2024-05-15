@@ -64,19 +64,17 @@ struct Config {
 
 #[tokio::main]
 async fn main() {
-    let env = env::args().collect::<Vec<String>>();
-
-    if env.len() < 2 {
-        println!("Missing arguments");
+    let Ok(cloudflare_url) = env::var("CLOUDFLARE_URL") else {
+        println!("Missing CLOUDFLARE_URL");
         return;
-    }
+    };
 
     let cloudflare_client = Client::builder()
         .build()
         .expect("client should be formed correctly");
 
     let config = Config {
-        cloudflare_url: env[1].clone(),
+        cloudflare_url,
         cloudflare_client,
     };
 
@@ -87,7 +85,7 @@ async fn main() {
         .route("/sudoku", get(sudoku))
         .with_state(config);
 
-    let Ok(listener) = TcpListener::bind("0.0.0.0:3000").await else {
+    let Ok(listener) = TcpListener::bind("0.0.0.0:8080").await else {
         println!("Could not bind TCP listener");
         return;
     };
