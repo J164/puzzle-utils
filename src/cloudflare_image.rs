@@ -52,7 +52,7 @@ pub async fn serve_image(
         .body(bytes)
         .send();
 
-    request.await?;
+    let _ = request.await?;
 
     Ok(hash)
 }
