@@ -16,7 +16,7 @@ use cloudflare_image::serve_pair;
 use puzzles::{
     maze::{generate_maze, MazeAlgorithm, MazeError},
     nonogram::{solve_nonogram, NonogramError},
-    sudoku::{parse_sudoku, solve_sudoku, SudokuError},
+    sudoku::{solve_sudoku, SudokuError},
 };
 use reqwest::Client;
 use serde_json::Value;
@@ -159,9 +159,7 @@ async fn sudoku(
     let puzzle = params
         .get("puzzle")
         .ok_or(Error::MissingArgument("puzzle"))?;
-    let sudoku = parse_sudoku(puzzle)
-        .and_then(solve_sudoku)
-        .map_err(Error::Puzzle)?;
+    let sudoku = solve_sudoku(puzzle).map_err(Error::Puzzle)?;
 
     serve_pair(&config.cloudflare_client, &config.cloudflare_url, sudoku)
         .await

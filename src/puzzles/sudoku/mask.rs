@@ -1,4 +1,8 @@
-use super::{BOX_SIZE, GRID_SIZE, NUM_MAX, NUM_MIN};
+use super::GRID_SIZE;
+
+const BOX_SIZE: usize = 3;
+const NUM_MIN: u8 = 1;
+const NUM_MAX: u8 = 9;
 
 pub struct Mask {
     rows: [u16; 9],
