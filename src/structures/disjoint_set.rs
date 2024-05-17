@@ -87,11 +87,9 @@ impl DisjointSet {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn with_size() {
-        let set = DisjointSet::with_size(10);
+        let set = super::DisjointSet::with_size(10);
         assert_eq!(set.elements.len(), 10);
         for elem in set.elements {
             assert!(elem.root);
@@ -101,7 +99,7 @@ mod tests {
 
     #[test]
     fn add() {
-        let mut set = DisjointSet::new();
+        let mut set = super::DisjointSet::new();
         set.add();
         assert_eq!(set.elements.len(), 1);
         assert!(set.elements[0].root);
@@ -110,7 +108,7 @@ mod tests {
 
     #[test]
     fn union() {
-        let mut set = DisjointSet::with_size(2);
+        let mut set = super::DisjointSet::with_size(2);
         set.union(0, 1);
         assert!(set.elements[0].root);
         assert_eq!(set.elements[0].value, 2);
@@ -120,7 +118,7 @@ mod tests {
 
     #[test]
     fn union_by_size() {
-        let mut set = DisjointSet::with_size(5);
+        let mut set = super::DisjointSet::with_size(5);
 
         set.union(0, 1);
         set.union(2, 1);
@@ -147,7 +145,7 @@ mod tests {
 
     #[test]
     fn find() {
-        let mut set = DisjointSet::with_size(8);
+        let mut set = super::DisjointSet::with_size(8);
 
         set.union(0, 1);
         set.union(1, 2);
@@ -172,7 +170,7 @@ mod tests {
 
     #[test]
     fn find_path_compression() {
-        let mut set = DisjointSet::with_size(5);
+        let mut set = super::DisjointSet::with_size(5);
 
         set.union(0, 1);
         set.union(2, 1);
@@ -185,7 +183,7 @@ mod tests {
 
     #[test]
     fn common_set() {
-        let mut set = DisjointSet::with_size(8);
+        let mut set = super::DisjointSet::with_size(8);
 
         set.union(0, 1);
         set.union(1, 2);
