@@ -453,16 +453,19 @@ mod tests {
     }
 
     #[test]
-    fn parse() {
-        // two x two
+    fn parse_two_two() {
         test_parse(TWO_TWO_COL_STRING, two_two_col(), TWO_TWO_HEIGHT);
         test_parse(TWO_TWO_ROW_STRING, two_two_row(), TWO_TWO_WIDTH);
+    }
 
-        // two x three
+    #[test]
+    fn parse_two_three() {
         test_parse(TWO_THREE_COL_STRING, two_three_col(), TWO_THREE_HEIGHT);
         test_parse(TWO_THREE_ROW_STRING, two_three_row(), TWO_THREE_WIDTH);
+    }
 
-        // three x three
+    #[test]
+    fn parse_three_three() {
         test_parse(
             THREE_THREE_COL_STRING,
             three_three_col(),
@@ -478,14 +481,17 @@ mod tests {
     }
 
     #[test]
-    fn narrow() {
-        // two x two
+    fn narrow_two_two() {
         test_narrow(two_two_col(), two_two_row(), two_two_narrowed());
+    }
 
-        // two x three
+    #[test]
+    fn narrow_two_three() {
         test_narrow(two_three_col(), two_three_row(), two_three_narrowed());
+    }
 
-        // three x three
+    #[test]
+    fn narrow_three_three() {
         test_narrow(three_three_col(), three_three_row(), three_three_narrowed());
     }
 
@@ -500,24 +506,27 @@ mod tests {
     }
 
     #[test]
-    fn recursive_backtrack() {
-        // two x two
+    fn recursive_backtrack_two_two() {
         test_backtrack(
             two_two_narrowed(),
             two_two_col(),
             two_two_row(),
             two_two_backtracked(),
         );
+    }
 
-        // two x three
+    #[test]
+    fn recursive_backtrack_two_three() {
         test_backtrack(
             two_three_narrowed(),
             two_three_col(),
             two_three_row(),
             two_three_backtracked(),
         );
+    }
 
-        // three x three
+    #[test]
+    fn recursive_backtrack_three_three() {
         test_backtrack(
             three_three_narrowed(),
             three_three_col(),
@@ -535,14 +544,17 @@ mod tests {
     }
 
     #[test]
-    fn print() {
-        // two x two
+    fn print_two_two() {
         test_print(two_two_col(), two_two_row(), TWO_TWO_UNSOLVED_IMAGE);
+    }
 
-        // two x three
+    #[test]
+    fn print_two_three() {
         test_print(two_three_col(), two_three_row(), TWO_THREE_UNSOLVED_IMAGE);
+    }
 
-        // three x three
+    #[test]
+    fn print_three_three() {
         test_print(
             three_three_col(),
             three_three_row(),

@@ -265,20 +265,27 @@ mod tests {
     }
 
     #[test]
-    fn parse() {
-        // Easy
+    fn parse_easy() {
         test_parse(EASY_STRING, EASY_UNSOLVED.to_vec());
+    }
 
-        // Medium
+    #[test]
+    fn parse_medium() {
         test_parse(MEDIUM_STRING, MEDIUM_UNSOLVED.to_vec());
+    }
 
-        // Hard 1
+    #[test]
+    fn parse_hard1() {
         test_parse(HARD1_STRING, HARD1_UNSOLVED.to_vec());
+    }
 
-        // Hard 2
+    #[test]
+    fn parse_hard2() {
         test_parse(HARD2_STRING, HARD2_UNSOLVED.to_vec());
+    }
 
-        // Hard 3
+    #[test]
+    fn parse_hard3() {
         test_parse(HARD3_STRING, HARD3_UNSOLVED.to_vec());
     }
 
@@ -288,20 +295,27 @@ mod tests {
     }
 
     #[test]
-    fn solve() {
-        // Easy
+    fn solve_easy() {
         test_solve(EASY_UNSOLVED.to_vec(), EASY_SOLVED.to_vec());
+    }
 
-        // Medium
+    #[test]
+    fn solve_medium() {
         test_solve(MEDIUM_UNSOLVED.to_vec(), MEDIUM_SOLVED.to_vec());
+    }
 
-        // Hard 1
+    #[test]
+    fn solve_hard1() {
         test_solve(HARD1_UNSOLVED.to_vec(), HARD1_SOLVED.to_vec());
+    }
 
-        // Hard 2
+    #[test]
+    fn solve_hard2() {
         test_solve(HARD2_UNSOLVED.to_vec(), HARD2_SOLVED.to_vec());
+    }
 
-        // Hard 3
+    #[test]
+    fn solve_hard3() {
         test_solve(HARD3_UNSOLVED.to_vec(), HARD3_SOLVED.to_vec());
     }
 
@@ -314,24 +328,31 @@ mod tests {
     }
 
     #[test]
-    fn print() {
-        // Easy
+    fn print_easy() {
         test_print(EASY_UNSOLVED.to_vec(), EASY_UNSOLVED_IMAGE);
         test_print(EASY_SOLVED.to_vec(), EASY_SOLVED_IMAGE);
+    }
 
-        // Medium
+    #[test]
+    fn print_medium() {
         test_print(MEDIUM_UNSOLVED.to_vec(), MEDIUM_UNSOLVED_IMAGE);
         test_print(MEDIUM_SOLVED.to_vec(), MEDIUM_SOLVED_IMAGE);
+    }
 
-        // Hard 1
+    #[test]
+    fn print_hard1() {
         test_print(HARD1_UNSOLVED.to_vec(), HARD1_UNSOLVED_IMAGE);
         test_print(HARD1_SOLVED.to_vec(), HARD1_SOLVED_IMAGE);
+    }
 
-        // Hard 2
+    #[test]
+    fn print_hard2() {
         test_print(HARD2_UNSOLVED.to_vec(), HARD2_UNSOLVED_IMAGE);
         test_print(HARD2_SOLVED.to_vec(), HARD2_SOLVED_IMAGE);
+    }
 
-        // hard3
+    #[test]
+    fn print_hard3() {
         test_print(HARD3_UNSOLVED.to_vec(), HARD3_UNSOLVED_IMAGE);
         test_print(HARD3_SOLVED.to_vec(), HARD3_SOLVED_IMAGE);
     }
