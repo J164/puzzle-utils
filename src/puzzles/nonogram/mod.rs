@@ -162,28 +162,10 @@ fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
 
 fn recursive_backtrack(grid: &mut [Square], col: &[Rule], row: &[Rule]) {}
 
-fn print(width: u32, height: u32, row: &[Rule], col: &[Rule]) -> RgbBuffer {
+fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
     let mut image = ImageBuffer::from_pixel(width * 50 + 150, height * 50 + 150, WHITE_PIXEL);
 
     let font = FontRef::try_from_slice(ROBOTO_MEDIUM).expect("Font should be valid");
-
-    for (y, rule) in row.iter().enumerate() {
-        let y = (y as u32) * 50 + 160;
-
-        for (x, value) in rule.values.iter().enumerate() {
-            let x = (x as u32) * 30 + 10;
-
-            draw_text_mut(
-                &mut image,
-                BLACK_PIXEL,
-                x as i32,
-                y as i32,
-                30.0,
-                &font,
-                &value.to_string(),
-            );
-        }
-    }
 
     for (x, rule) in col.iter().enumerate() {
         let x = (x as u32) * 50 + 165;
@@ -199,6 +181,24 @@ fn print(width: u32, height: u32, row: &[Rule], col: &[Rule]) -> RgbBuffer {
                 30.0,
                 &font,
                 &rule.to_string(),
+            );
+        }
+    }
+
+    for (y, rule) in row.iter().enumerate() {
+        let y = (y as u32) * 50 + 160;
+
+        for (x, value) in rule.values.iter().enumerate() {
+            let x = (x as u32) * 30 + 10;
+
+            draw_text_mut(
+                &mut image,
+                BLACK_PIXEL,
+                x as i32,
+                y as i32,
+                30.0,
+                &font,
+                &value.to_string(),
             );
         }
     }
@@ -239,6 +239,10 @@ fn print_solution(width: u32, mut image: RgbBuffer, grid: Vec<Square>) -> RgbBuf
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
+    use image::ImageFormat;
+
     use super::Square;
 
     impl PartialEq for super::Rule {
@@ -263,7 +267,7 @@ mod tests {
     const TWO_TWO_HEIGHT: usize = 2;
 
     const TWO_TWO_COL_STRING: &str = "2;1";
-    fn two_two_col_expected() -> Vec<super::Rule> {
+    fn two_two_col() -> Vec<super::Rule> {
         vec![
             super::Rule {
                 values: vec![2],
@@ -277,7 +281,7 @@ mod tests {
     }
 
     const TWO_TWO_ROW_STRING: &str = "2;1";
-    fn two_two_row_expected() -> Vec<super::Rule> {
+    fn two_two_row() -> Vec<super::Rule> {
         vec![
             super::Rule {
                 values: vec![2],
@@ -290,7 +294,7 @@ mod tests {
         ]
     }
 
-    fn two_two_narrowed_expected() -> Vec<Square> {
+    fn two_two_narrowed() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Filled,
@@ -299,7 +303,7 @@ mod tests {
         ]
     }
 
-    fn two_two_backtracked_expected() -> Vec<Square> {
+    fn two_two_backtracked() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Filled,
@@ -308,12 +312,15 @@ mod tests {
         ]
     }
 
+    const TWO_TWO_UNSOLVED_IMAGE: &[u8] =
+        include_bytes!("../../../tests/nonogram/unsolved/two_two.png");
+
     // two x three
     const TWO_THREE_WIDTH: usize = 2;
     const TWO_THREE_HEIGHT: usize = 3;
 
     const TWO_THREE_COL_STRING: &str = "1,1;2";
-    fn two_three_col_expected() -> Vec<super::Rule> {
+    fn two_three_col() -> Vec<super::Rule> {
         vec![
             super::Rule {
                 values: vec![1, 1],
@@ -327,7 +334,7 @@ mod tests {
     }
 
     const TWO_THREE_ROW_STRING: &str = "1;1;2";
-    fn two_three_row_expected() -> Vec<super::Rule> {
+    fn two_three_row() -> Vec<super::Rule> {
         vec![
             super::Rule {
                 values: vec![1],
@@ -344,7 +351,7 @@ mod tests {
         ]
     }
 
-    fn two_three_narrowed_expected() -> Vec<Square> {
+    fn two_three_narrowed() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Blank,
@@ -355,7 +362,7 @@ mod tests {
         ]
     }
 
-    fn two_three_backtracked_expected() -> Vec<Square> {
+    fn two_three_backtracked() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Blocked,
@@ -365,13 +372,16 @@ mod tests {
             Square::Filled,
         ]
     }
+
+    const TWO_THREE_UNSOLVED_IMAGE: &[u8] =
+        include_bytes!("../../../tests/nonogram/unsolved/two_three.png");
 
     // three x three
     const THREE_THREE_WIDTH: usize = 3;
     const THREE_THREE_HEIGHT: usize = 3;
 
     const THREE_THREE_COL_STRING: &str = "2;1;1";
-    fn three_three_col_expected() -> Vec<super::Rule> {
+    fn three_three_col() -> Vec<super::Rule> {
         vec![
             super::Rule {
                 values: vec![2],
@@ -389,7 +399,7 @@ mod tests {
     }
 
     const THREE_THREE_ROW_STRING: &str = "1;1;2";
-    fn three_three_row_expected() -> Vec<super::Rule> {
+    fn three_three_row() -> Vec<super::Rule> {
         vec![
             super::Rule {
                 values: vec![1],
@@ -406,7 +416,7 @@ mod tests {
         ]
     }
 
-    fn three_three_narrowed_expected() -> Vec<Square> {
+    fn three_three_narrowed() -> Vec<Square> {
         vec![
             Square::Blank,
             Square::Blank,
@@ -420,7 +430,7 @@ mod tests {
         ]
     }
 
-    fn three_three_backtracked_expected() -> Vec<Square> {
+    fn three_three_backtracked() -> Vec<Square> {
         vec![
             Square::Blocked,
             Square::Blocked,
@@ -433,6 +443,9 @@ mod tests {
             Square::Blocked,
         ]
     }
+
+    const THREE_THREE_UNSOLVED_IMAGE: &[u8] =
+        include_bytes!("../../../tests/nonogram/unsolved/three_three.png");
 
     fn test_parse(string: &str, expected: Vec<super::Rule>, bound: usize) {
         let actual = super::parse(string, bound).expect("should be ok");
@@ -442,32 +455,20 @@ mod tests {
     #[test]
     fn parse() {
         // two x two
-        test_parse(TWO_TWO_COL_STRING, two_two_col_expected(), TWO_TWO_HEIGHT);
-        test_parse(TWO_TWO_ROW_STRING, two_two_row_expected(), TWO_TWO_WIDTH);
+        test_parse(TWO_TWO_COL_STRING, two_two_col(), TWO_TWO_HEIGHT);
+        test_parse(TWO_TWO_ROW_STRING, two_two_row(), TWO_TWO_WIDTH);
 
         // two x three
-        test_parse(
-            TWO_THREE_COL_STRING,
-            two_three_col_expected(),
-            TWO_THREE_HEIGHT,
-        );
-        test_parse(
-            TWO_THREE_ROW_STRING,
-            two_three_row_expected(),
-            TWO_THREE_WIDTH,
-        );
+        test_parse(TWO_THREE_COL_STRING, two_three_col(), TWO_THREE_HEIGHT);
+        test_parse(TWO_THREE_ROW_STRING, two_three_row(), TWO_THREE_WIDTH);
 
         // three x three
         test_parse(
             THREE_THREE_COL_STRING,
-            three_three_col_expected(),
+            three_three_col(),
             THREE_THREE_HEIGHT,
         );
-        test_parse(
-            THREE_THREE_ROW_STRING,
-            three_three_row_expected(),
-            THREE_THREE_WIDTH,
-        );
+        test_parse(THREE_THREE_ROW_STRING, three_three_row(), THREE_THREE_WIDTH);
     }
 
     fn test_narrow(col: Vec<super::Rule>, row: Vec<super::Rule>, expected: Vec<super::Square>) {
@@ -479,25 +480,13 @@ mod tests {
     #[test]
     fn narrow() {
         // two x two
-        test_narrow(
-            two_two_col_expected(),
-            two_two_row_expected(),
-            two_two_narrowed_expected(),
-        );
+        test_narrow(two_two_col(), two_two_row(), two_two_narrowed());
 
         // two x three
-        test_narrow(
-            two_three_col_expected(),
-            two_three_row_expected(),
-            two_three_narrowed_expected(),
-        );
+        test_narrow(two_three_col(), two_three_row(), two_three_narrowed());
 
         // three x three
-        test_narrow(
-            three_three_col_expected(),
-            three_three_row_expected(),
-            three_three_narrowed_expected(),
-        );
+        test_narrow(three_three_col(), three_three_row(), three_three_narrowed());
     }
 
     fn test_backtrack(
@@ -514,26 +503,50 @@ mod tests {
     fn recursive_backtrack() {
         // two x two
         test_backtrack(
-            two_two_narrowed_expected(),
-            two_two_col_expected(),
-            two_two_row_expected(),
-            two_two_backtracked_expected(),
+            two_two_narrowed(),
+            two_two_col(),
+            two_two_row(),
+            two_two_backtracked(),
         );
 
         // two x three
         test_backtrack(
-            two_three_narrowed_expected(),
-            two_three_col_expected(),
-            two_three_row_expected(),
-            two_three_backtracked_expected(),
+            two_three_narrowed(),
+            two_three_col(),
+            two_three_row(),
+            two_three_backtracked(),
         );
 
         // three x three
         test_backtrack(
-            three_three_narrowed_expected(),
-            three_three_col_expected(),
-            three_three_row_expected(),
-            three_three_backtracked_expected(),
+            three_three_narrowed(),
+            three_three_col(),
+            three_three_row(),
+            three_three_backtracked(),
+        );
+    }
+
+    fn test_print(col: Vec<super::Rule>, row: Vec<super::Rule>, expected: &[u8]) {
+        let mut actual = Vec::new();
+        super::print(col.len() as u32, row.len() as u32, &col, &row)
+            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
+            .expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn print() {
+        // two x two
+        test_print(two_two_col(), two_two_row(), TWO_TWO_UNSOLVED_IMAGE);
+
+        // two x three
+        test_print(two_three_col(), two_three_row(), TWO_THREE_UNSOLVED_IMAGE);
+
+        // three x three
+        test_print(
+            three_three_col(),
+            three_three_row(),
+            THREE_THREE_UNSOLVED_IMAGE,
         );
     }
 }

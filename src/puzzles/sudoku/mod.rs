@@ -116,7 +116,7 @@ fn next_blank(puzzle: &[u8], mask: &Mask, start: usize) -> Option<Square> {
         })
 }
 
-fn print(sudoku: Vec<u8>) -> RgbBuffer {
+fn print(puzzle: Vec<u8>) -> RgbBuffer {
     const IMAGE_SIZE: u32 = GRID_SIZE as u32 * 100;
 
     let mut image = RgbImage::from_pixel(IMAGE_SIZE, IMAGE_SIZE, WHITE_PIXEL);
@@ -140,7 +140,7 @@ fn print(sudoku: Vec<u8>) -> RgbBuffer {
         }
     }
 
-    for (i, &number) in sudoku.iter().enumerate() {
+    for (i, &number) in puzzle.iter().enumerate() {
         if number == 0 {
             continue;
         }
@@ -171,6 +171,7 @@ mod tests {
     // Easy
     const EASY_STRING: &str =
         "415830090003009104002150006900783000200000381500012400004900063380500040009307500";
+
     const EASY_UNSOLVED: [u8; 81] = [
         4, 1, 5, 8, 3, 0, 0, 9, 0, 0, 0, 3, 0, 0, 9, 1, 0, 4, 0, 0, 2, 1, 5, 0, 0, 0, 6, 9, 0, 0,
         7, 8, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 3, 8, 1, 5, 0, 0, 0, 1, 2, 4, 0, 0, 0, 0, 4, 9, 0, 0,
@@ -182,9 +183,13 @@ mod tests {
         7, 6, 3, 3, 8, 7, 5, 6, 1, 9, 4, 2, 6, 2, 9, 3, 4, 7, 5, 1, 8,
     ];
 
+    const EASY_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/easy.png");
+    const EASY_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/easy.png");
+
     // Medium
     const MEDIUM_STRING: &str =
         "500000300009000027400105009200000070000006000006049000300027900080600000000034012";
+
     const MEDIUM_UNSOLVED: [u8; 81] = [
         5, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 9, 0, 0, 0, 0, 2, 7, 4, 0, 0, 1, 0, 5, 0, 0, 9, 2, 0, 0,
         0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 6, 0, 4, 9, 0, 0, 0, 3, 0, 0, 0, 2, 7,
@@ -196,9 +201,14 @@ mod tests {
         9, 8, 6, 7, 8, 2, 6, 9, 1, 4, 5, 3, 9, 6, 5, 8, 3, 4, 7, 1, 2,
     ];
 
+    const MEDIUM_UNSOLVED_IMAGE: &[u8] =
+        include_bytes!("../../../tests/sudoku/unsolved/medium.png");
+    const MEDIUM_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/medium.png");
+
     // Hard 1
     const HARD1_STRING: &str =
         "000030400900400300300000072009005000800010000700600529000100700601050008040000010";
+
     const HARD1_UNSOLVED: [u8; 81] = [
         0, 0, 0, 0, 3, 0, 4, 0, 0, 9, 0, 0, 4, 0, 0, 3, 0, 0, 3, 0, 0, 0, 0, 0, 0, 7, 2, 0, 0, 9,
         0, 0, 5, 0, 0, 0, 8, 0, 0, 0, 1, 0, 0, 0, 0, 7, 0, 0, 6, 0, 0, 5, 2, 9, 0, 0, 0, 1, 0, 0,
@@ -210,9 +220,13 @@ mod tests {
         7, 6, 5, 6, 3, 1, 2, 5, 7, 9, 4, 8, 5, 4, 7, 8, 9, 6, 2, 1, 3,
     ];
 
+    const HARD1_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard1.png");
+    const HARD1_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard1.png");
+
     // Hard 2
     const HARD2_STRING: &str =
         "800000000003600000070090200050007000000045700000100030001000068008500010090000400";
+
     const HARD2_UNSOLVED: [u8; 81] = [
         8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 0, 0, 0, 0, 0, 0, 7, 0, 0, 9, 0, 2, 0, 0, 0, 5, 0,
         0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 4, 5, 7, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0,
@@ -224,9 +238,13 @@ mod tests {
         3, 6, 8, 4, 3, 8, 5, 2, 6, 9, 1, 7, 7, 9, 6, 3, 1, 8, 4, 5, 2,
     ];
 
+    const HARD2_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard2.png");
+    const HARD2_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard2.png");
+
     // Hard 3
     const HARD3_STRING: &str =
         "120300000400000300003050000004200500000080009060005070001500200000090060000007008";
+
     const HARD3_UNSOLVED: [u8; 81] = [
         1, 2, 0, 3, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 5, 0, 0, 0, 0, 0, 0, 4,
         2, 0, 0, 5, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 9, 0, 6, 0, 0, 0, 5, 0, 7, 0, 0, 0, 1, 5, 0, 0,
@@ -238,209 +256,83 @@ mod tests {
         2, 3, 7, 2, 5, 7, 8, 9, 3, 4, 6, 1, 3, 4, 6, 1, 2, 7, 9, 5, 8,
     ];
 
+    const HARD3_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard3.png");
+    const HARD3_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard3.png");
+
+    fn test_parse(string: &str, expected: Vec<u8>) {
+        let actual = super::parse(string).expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
     #[test]
     fn parse() {
         // Easy
-        let easy_expected = EASY_UNSOLVED.to_vec();
-
-        let easy_actual = super::parse(EASY_STRING).expect("should be ok");
-        assert_eq!(easy_actual, easy_expected);
+        test_parse(EASY_STRING, EASY_UNSOLVED.to_vec());
 
         // Medium
-        let medium_expected = MEDIUM_UNSOLVED.to_vec();
-
-        let medium_actual = super::parse(MEDIUM_STRING).expect("should be ok");
-        assert_eq!(medium_actual, medium_expected);
+        test_parse(MEDIUM_STRING, MEDIUM_UNSOLVED.to_vec());
 
         // Hard 1
-        let hard1_expected = HARD1_UNSOLVED.to_vec();
-
-        let hard1_actual = super::parse(HARD1_STRING).expect("should be ok");
-        assert_eq!(hard1_actual, hard1_expected);
+        test_parse(HARD1_STRING, HARD1_UNSOLVED.to_vec());
 
         // Hard 2
-        let hard2_expected = HARD2_UNSOLVED.to_vec();
-
-        let hard2_actual = super::parse(HARD2_STRING).expect("should be ok");
-        assert_eq!(hard2_actual, hard2_expected);
+        test_parse(HARD2_STRING, HARD2_UNSOLVED.to_vec());
 
         // Hard 3
-        let hard3_expected = HARD3_UNSOLVED.to_vec();
+        test_parse(HARD3_STRING, HARD3_UNSOLVED.to_vec());
+    }
 
-        let hard3_actual = super::parse(HARD3_STRING).expect("should be ok");
-        assert_eq!(hard3_actual, hard3_expected);
+    fn test_solve(puzzle: Vec<u8>, expected: Vec<u8>) {
+        let acutal = super::solve(&puzzle).expect("should be ok");
+        assert_eq!(acutal, expected);
     }
 
     #[test]
     fn solve() {
         // Easy
-        let easy_puzzle = EASY_UNSOLVED.to_vec();
-
-        let easy_expected = EASY_SOLVED.to_vec();
-
-        let easy_actual = super::solve(&easy_puzzle).expect("should be ok");
-        assert_eq!(easy_actual, easy_expected);
+        test_solve(EASY_UNSOLVED.to_vec(), EASY_SOLVED.to_vec());
 
         // Medium
-        let medium_puzzle = MEDIUM_UNSOLVED.to_vec();
-
-        let medium_expected = MEDIUM_SOLVED.to_vec();
-
-        let medium_actual = super::solve(&medium_puzzle).expect("should be ok");
-        assert_eq!(medium_actual, medium_expected);
+        test_solve(MEDIUM_UNSOLVED.to_vec(), MEDIUM_SOLVED.to_vec());
 
         // Hard 1
-        let hard1_puzzle = HARD1_UNSOLVED.to_vec();
-
-        let hard1_expected = HARD1_SOLVED.to_vec();
-
-        let hard1_actual = super::solve(&hard1_puzzle).expect("should be ok");
-        assert_eq!(hard1_actual, hard1_expected);
+        test_solve(HARD1_UNSOLVED.to_vec(), HARD1_SOLVED.to_vec());
 
         // Hard 2
-        let hard2_puzzle = HARD2_UNSOLVED.to_vec();
-
-        let hard2_expected = HARD2_SOLVED.to_vec();
-
-        let hard2_actual = super::solve(&hard2_puzzle).expect("should be ok");
-        assert_eq!(hard2_actual, hard2_expected);
+        test_solve(HARD2_UNSOLVED.to_vec(), HARD2_SOLVED.to_vec());
 
         // Hard 3
-        let hard3_puzzle = HARD3_UNSOLVED.to_vec();
+        test_solve(HARD3_UNSOLVED.to_vec(), HARD3_SOLVED.to_vec());
+    }
 
-        let hard3_expected = HARD3_SOLVED.to_vec();
-
-        let hard3_actual = super::solve(&hard3_puzzle).expect("should be ok");
-        assert_eq!(hard3_actual, hard3_expected);
+    fn test_print(puzzle: Vec<u8>, expected: &[u8]) {
+        let mut actual = Vec::new();
+        super::print(puzzle)
+            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
+            .expect("should be ok");
+        assert_eq!(actual, expected);
     }
 
     #[test]
     fn print() {
         // Easy
-        let easy_unsolved = EASY_UNSOLVED.to_vec();
-
-        let easy_unsolved_expected = include_bytes!("../../../tests/sudoku/unsolved/easy.png");
-
-        let mut easy_unsolved_actual = Vec::new();
-        let write_result = super::print(easy_unsolved).write_to(
-            &mut Cursor::new(&mut easy_unsolved_actual),
-            ImageFormat::Png,
-        );
-
-        assert!(write_result.is_ok());
-        assert_eq!(easy_unsolved_actual, easy_unsolved_expected);
-
-        let easy_solved = EASY_SOLVED.to_vec();
-
-        let easy_solved_expected = include_bytes!("../../../tests/sudoku/solved/easy.png");
-
-        let mut easy_solved_actual = Vec::new();
-        let write_result = super::print(easy_solved)
-            .write_to(&mut Cursor::new(&mut easy_solved_actual), ImageFormat::Png);
-
-        assert!(write_result.is_ok());
-        assert_eq!(easy_solved_actual, easy_solved_expected);
+        test_print(EASY_UNSOLVED.to_vec(), EASY_UNSOLVED_IMAGE);
+        test_print(EASY_SOLVED.to_vec(), EASY_SOLVED_IMAGE);
 
         // Medium
-        let medium_unsolved = MEDIUM_UNSOLVED.to_vec();
-
-        let medium_unsolved_expected = include_bytes!("../../../tests/sudoku/unsolved/medium.png");
-
-        let mut medium_unsolved_actual = Vec::new();
-        let write_result = super::print(medium_unsolved).write_to(
-            &mut Cursor::new(&mut medium_unsolved_actual),
-            ImageFormat::Png,
-        );
-
-        assert!(write_result.is_ok());
-        assert_eq!(medium_unsolved_actual, medium_unsolved_expected);
-
-        let medium_solved = MEDIUM_SOLVED.to_vec();
-
-        let medium_solved_expected = include_bytes!("../../../tests/sudoku/solved/medium.png");
-
-        let mut medium_solved_actual = Vec::new();
-        let write_result = super::print(medium_solved).write_to(
-            &mut Cursor::new(&mut medium_solved_actual),
-            ImageFormat::Png,
-        );
-
-        assert!(write_result.is_ok());
-        assert_eq!(medium_solved_actual, medium_solved_expected);
+        test_print(MEDIUM_UNSOLVED.to_vec(), MEDIUM_UNSOLVED_IMAGE);
+        test_print(MEDIUM_SOLVED.to_vec(), MEDIUM_SOLVED_IMAGE);
 
         // Hard 1
-        let hard1_unsolved = HARD1_UNSOLVED.to_vec();
-
-        let hard1_unsolved_expected = include_bytes!("../../../tests/sudoku/unsolved/hard1.png");
-
-        let mut hard1_unsolved_actual = Vec::new();
-        let write_result = super::print(hard1_unsolved).write_to(
-            &mut Cursor::new(&mut hard1_unsolved_actual),
-            ImageFormat::Png,
-        );
-
-        assert!(write_result.is_ok());
-        assert_eq!(hard1_unsolved_actual, hard1_unsolved_expected);
-
-        let hard1_solved = HARD1_SOLVED.to_vec();
-
-        let hard1_solved_expected = include_bytes!("../../../tests/sudoku/solved/hard1.png");
-
-        let mut hard1_solved_actual = Vec::new();
-        let write_result = super::print(hard1_solved)
-            .write_to(&mut Cursor::new(&mut hard1_solved_actual), ImageFormat::Png);
-
-        assert!(write_result.is_ok());
-        assert_eq!(hard1_solved_actual, hard1_solved_expected);
+        test_print(HARD1_UNSOLVED.to_vec(), HARD1_UNSOLVED_IMAGE);
+        test_print(HARD1_SOLVED.to_vec(), HARD1_SOLVED_IMAGE);
 
         // Hard 2
-        let hard2_unsolved = HARD2_UNSOLVED.to_vec();
-
-        let hard2_unsolved_expected = include_bytes!("../../../tests/sudoku/unsolved/hard2.png");
-
-        let mut hard2_unsolved_actual = Vec::new();
-        let write_result = super::print(hard2_unsolved).write_to(
-            &mut Cursor::new(&mut hard2_unsolved_actual),
-            ImageFormat::Png,
-        );
-
-        assert!(write_result.is_ok());
-        assert_eq!(hard2_unsolved_actual, hard2_unsolved_expected);
-
-        let hard2_solved = HARD2_SOLVED.to_vec();
-
-        let hard2_solved_expected = include_bytes!("../../../tests/sudoku/solved/hard2.png");
-
-        let mut hard2_solved_actual = Vec::new();
-        let write_result = super::print(hard2_solved)
-            .write_to(&mut Cursor::new(&mut hard2_solved_actual), ImageFormat::Png);
-
-        assert!(write_result.is_ok());
-        assert_eq!(hard2_solved_actual, hard2_solved_expected);
+        test_print(HARD2_UNSOLVED.to_vec(), HARD2_UNSOLVED_IMAGE);
+        test_print(HARD2_SOLVED.to_vec(), HARD2_SOLVED_IMAGE);
 
         // hard3
-        let hard3_unsolved = HARD3_UNSOLVED.to_vec();
-
-        let hard3_unsolved_expected = include_bytes!("../../../tests/sudoku/unsolved/hard3.png");
-
-        let mut hard3_unsolved_actual = Vec::new();
-        let write_result = super::print(hard3_unsolved).write_to(
-            &mut Cursor::new(&mut hard3_unsolved_actual),
-            ImageFormat::Png,
-        );
-
-        assert!(write_result.is_ok());
-        assert_eq!(hard3_unsolved_actual, hard3_unsolved_expected);
-
-        let hard3_solved = HARD3_SOLVED.to_vec();
-
-        let hard3_solved_expected = include_bytes!("../../../tests/sudoku/solved/hard3.png");
-
-        let mut hard3_solved_actual = Vec::new();
-        let write_result = super::print(hard3_solved)
-            .write_to(&mut Cursor::new(&mut hard3_solved_actual), ImageFormat::Png);
-
-        assert!(write_result.is_ok());
-        assert_eq!(hard3_solved_actual, hard3_solved_expected);
+        test_print(HARD3_UNSOLVED.to_vec(), HARD3_UNSOLVED_IMAGE);
+        test_print(HARD3_SOLVED.to_vec(), HARD3_SOLVED_IMAGE);
     }
 }
