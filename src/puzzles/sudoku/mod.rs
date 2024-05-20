@@ -5,10 +5,7 @@ use image::RgbImage;
 use imageproc::drawing::draw_text_mut;
 use thiserror::Error;
 
-use crate::{
-    cloudflare_image::SolutionPair,
-    util::{RgbBuffer, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
-};
+use crate::util::{RgbBuffer, SolutionPair, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
 use self::mask::Mask;
 

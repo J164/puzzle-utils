@@ -12,10 +12,8 @@ unwrap_used = "warn"
 ab_glyph = "0.2.25"
 axum = "0.7.5"
 image = "0.25.1"
-imageproc = "0.24.0"
+imageproc = "0.25.0"
 rand = "0.8.5"
-reqwest = { version = "0.12.4", features = ["json"] }
-serde_json = "1.0.116"
-sha256 = "1.5.0"
 thiserror = "1.0.60"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+tower-http = { version = "0.5.2", features = ["set-header"] }

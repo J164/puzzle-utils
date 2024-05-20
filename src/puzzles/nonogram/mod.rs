@@ -8,10 +8,7 @@ use imageproc::{
 };
 use thiserror::Error;
 
-use crate::{
-    cloudflare_image::SolutionPair,
-    util::{RgbBuffer, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
-};
+use crate::util::{RgbBuffer, SolutionPair, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
 #[derive(Debug, Error)]
 pub enum NonogramError {
@@ -278,7 +275,7 @@ mod tests {
 
     use image::ImageFormat;
 
-    use super::{Square, Rule};
+    use super::{Rule, Square};
 
     // two x two
     const TWO_TWO_WIDTH: usize = 2;

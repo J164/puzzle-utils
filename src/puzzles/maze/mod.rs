@@ -6,9 +6,8 @@ use image::RgbImage;
 use thiserror::Error;
 
 use crate::{
-    cloudflare_image::SolutionPair,
     puzzles::maze::recursive_backtrack::recursive_backtrack,
-    util::{RgbBuffer, BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
+    util::{RgbBuffer, SolutionPair, BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
 };
 
 const MAX_DIMENSION: usize = 100;
