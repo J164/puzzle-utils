@@ -1,3 +1,5 @@
+use std::{cmp::Reverse, collections::BinaryHeap};
+
 use ab_glyph::FontRef;
 use image::ImageBuffer;
 use imageproc::{
@@ -41,10 +43,10 @@ pub fn solve_nonogram(col: &str, row: &str) -> Result<SolutionPair, NonogramErro
     Ok(SolutionPair::new(unsolved, solved))
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Rule {
+    variance: usize,
     values: Vec<usize>,
-    size: usize,
 }
 
 fn parse(rule: &str, bound: usize) -> Result<Vec<Rule>, NonogramError> {
@@ -71,12 +73,15 @@ fn parse(rule: &str, bound: usize) -> Result<Vec<Rule>, NonogramError> {
                 return Err(NonogramError::InvalidRuleDimension);
             }
 
-            Ok(Rule { values, size })
+            Ok(Rule {
+                values,
+                variance: bound - size,
+            })
         })
         .collect::<Result<Vec<Rule>, NonogramError>>()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Square {
     Blank,
     Filled,
@@ -102,15 +107,8 @@ fn solve(col: Vec<Rule>, row: Vec<Rule>) -> Result<Vec<Square>, NonogramError> {
 
         Recursive backtrack:
 
-        A is the rule set with the least rules (col by default)
-        B is the other rule set
-
-        1. Iterate through max heap of A rules by size (index -> i, rule)
+        1. Iterate through min heap of rules (row or col) by variance
         2. IF no fulfilments exist, revert to previous state
-        3. Iterate through fulfilments of rule that replace all blanks with filled or blocked // Because of row rule fulfilments, the effective board height is B.SIZE - i
-            a. Attempt to solve all row rules of size <= (WIDTH - (i + 1)) // should have exactly one solution if puzzle is valid so far
-            b. IF no valid solution exists for a rule, break back to (3)
-            c. ELSE accept fulfilment and continue
     */
 
     narrow(&mut grid, &col, &row);
@@ -124,16 +122,14 @@ fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
     let height = row.len();
 
     for (x, rule) in col.iter().enumerate() {
-        let variance = height - rule.size;
-
-        if variance > height / 2 {
+        if rule.variance > height / 2 {
             continue;
         }
 
         let mut y = 0;
         for &value in &rule.values {
-            if value > variance {
-                for k in variance..value {
+            if value > rule.variance {
+                for k in rule.variance..value {
                     grid[(y + k) * width + x] = Square::Filled;
                 }
             }
@@ -142,16 +138,14 @@ fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
     }
 
     for (y, rule) in row.iter().enumerate() {
-        let variance = width - rule.size;
-
-        if variance > width / 2 {
+        if rule.variance > width / 2 {
             continue;
         }
 
         let mut x = 0;
         for &value in &rule.values {
-            if value > variance {
-                for k in variance..value {
+            if value > rule.variance {
+                for k in rule.variance..value {
                     grid[y * width + x + k] = Square::Filled;
                 }
             }
@@ -160,7 +154,48 @@ fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
     }
 }
 
-fn recursive_backtrack(grid: &mut [Square], col: &[Rule], row: &[Rule]) {}
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum RecordDirection {
+    Col,
+    Row,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct RuleRecord {
+    variance: usize,
+    index: usize,
+    // Something that keeps track of what possibilities have been tried
+    direction: RecordDirection,
+}
+
+fn recursive_backtrack(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
+    let col_records = col
+        .iter()
+        .enumerate()
+        .map(|(index, &Rule { variance, .. })| RuleRecord {
+            variance,
+            index,
+            direction: RecordDirection::Col,
+        });
+    let row_records = row
+        .iter()
+        .enumerate()
+        .map(|(index, &Rule { variance, .. })| RuleRecord {
+            variance,
+            index,
+            direction: RecordDirection::Row,
+        });
+
+    let mut heap = BinaryHeap::from_iter(col_records.chain(row_records).map(Reverse));
+    let mut path = vec![heap.pop().expect("heap should be non-empty").0];
+
+    while !heap.is_empty() && !path.is_empty() {
+        let record = path.last().expect("path should be non-empty");
+
+        // If possibilites is empty
+        heap.push(Reverse(path.pop().expect("path should be non-empty")));
+    }
+}
 
 fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
     let mut image = ImageBuffer::from_pixel(width * 50 + 150, height * 50 + 150, WHITE_PIXEL);
@@ -243,53 +278,36 @@ mod tests {
 
     use image::ImageFormat;
 
-    use super::Square;
-
-    impl PartialEq for super::Rule {
-        fn eq(&self, other: &Self) -> bool {
-            self.values == other.values && self.size == other.size
-        }
-    }
-
-    impl PartialEq for super::Square {
-        fn eq(&self, other: &Self) -> bool {
-            matches!(
-                (self, other),
-                (Self::Blank, Self::Blank)
-                    | (Self::Blocked, Self::Blocked)
-                    | (Self::Filled, Self::Filled)
-            )
-        }
-    }
+    use super::{Square, Rule};
 
     // two x two
     const TWO_TWO_WIDTH: usize = 2;
     const TWO_TWO_HEIGHT: usize = 2;
 
     const TWO_TWO_COL_STRING: &str = "2;1";
-    fn two_two_col() -> Vec<super::Rule> {
+    fn two_two_col() -> Vec<Rule> {
         vec![
-            super::Rule {
+            Rule {
                 values: vec![2],
-                size: 2,
+                variance: 0,
             },
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 1,
             },
         ]
     }
 
     const TWO_TWO_ROW_STRING: &str = "2;1";
-    fn two_two_row() -> Vec<super::Rule> {
+    fn two_two_row() -> Vec<Rule> {
         vec![
-            super::Rule {
+            Rule {
                 values: vec![2],
-                size: 2,
+                variance: 0,
             },
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 1,
             },
         ]
     }
@@ -320,33 +338,33 @@ mod tests {
     const TWO_THREE_HEIGHT: usize = 3;
 
     const TWO_THREE_COL_STRING: &str = "1,1;2";
-    fn two_three_col() -> Vec<super::Rule> {
+    fn two_three_col() -> Vec<Rule> {
         vec![
-            super::Rule {
+            Rule {
                 values: vec![1, 1],
-                size: 3,
+                variance: 0,
             },
-            super::Rule {
+            Rule {
                 values: vec![2],
-                size: 2,
+                variance: 1,
             },
         ]
     }
 
     const TWO_THREE_ROW_STRING: &str = "1;1;2";
-    fn two_three_row() -> Vec<super::Rule> {
+    fn two_three_row() -> Vec<Rule> {
         vec![
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 1,
             },
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 1,
             },
-            super::Rule {
+            Rule {
                 values: vec![2],
-                size: 2,
+                variance: 0,
             },
         ]
     }
@@ -381,37 +399,37 @@ mod tests {
     const THREE_THREE_HEIGHT: usize = 3;
 
     const THREE_THREE_COL_STRING: &str = "2;1;1";
-    fn three_three_col() -> Vec<super::Rule> {
+    fn three_three_col() -> Vec<Rule> {
         vec![
-            super::Rule {
+            Rule {
                 values: vec![2],
-                size: 2,
+                variance: 1,
             },
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 2,
             },
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 2,
             },
         ]
     }
 
     const THREE_THREE_ROW_STRING: &str = "1;1;2";
-    fn three_three_row() -> Vec<super::Rule> {
+    fn three_three_row() -> Vec<Rule> {
         vec![
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 2,
             },
-            super::Rule {
+            Rule {
                 values: vec![1],
-                size: 1,
+                variance: 2,
             },
-            super::Rule {
+            Rule {
                 values: vec![2],
-                size: 2,
+                variance: 1,
             },
         ]
     }
@@ -447,7 +465,7 @@ mod tests {
     const THREE_THREE_UNSOLVED_IMAGE: &[u8] =
         include_bytes!("../../../tests/nonogram/unsolved/three_three.png");
 
-    fn test_parse(string: &str, expected: Vec<super::Rule>, bound: usize) {
+    fn test_parse(string: &str, expected: Vec<Rule>, bound: usize) {
         let actual = super::parse(string, bound).expect("should be ok");
         assert_eq!(actual, expected);
     }
@@ -474,7 +492,7 @@ mod tests {
         test_parse(THREE_THREE_ROW_STRING, three_three_row(), THREE_THREE_WIDTH);
     }
 
-    fn test_narrow(col: Vec<super::Rule>, row: Vec<super::Rule>, expected: Vec<super::Square>) {
+    fn test_narrow(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
         let mut actual = vec![Square::Blank; col.len() * row.len()];
         super::narrow(&mut actual, &col, &row);
         assert_eq!(actual, expected);
@@ -497,9 +515,9 @@ mod tests {
 
     fn test_backtrack(
         mut actual: Vec<Square>,
-        col: Vec<super::Rule>,
-        row: Vec<super::Rule>,
-        expected: Vec<super::Square>,
+        col: Vec<Rule>,
+        row: Vec<Rule>,
+        expected: Vec<Square>,
     ) {
         super::recursive_backtrack(&mut actual, &col, &row);
         assert_eq!(actual, expected);
@@ -535,7 +553,7 @@ mod tests {
         );
     }
 
-    fn test_print(col: Vec<super::Rule>, row: Vec<super::Rule>, expected: &[u8]) {
+    fn test_print(col: Vec<Rule>, row: Vec<Rule>, expected: &[u8]) {
         let mut actual = Vec::new();
         super::print(col.len() as u32, row.len() as u32, &col, &row)
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
