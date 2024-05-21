@@ -165,6 +165,26 @@ mod tests {
 
     use image::ImageFormat;
 
+    fn test_parse(string: &str, expected: Vec<u8>) {
+        let actual = super::parse(string).expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
+    fn test_solve(puzzle: Vec<u8>, expected: Vec<u8>) {
+        let acutal = super::solve(&puzzle).expect("should be ok");
+        assert_eq!(acutal, expected);
+    }
+
+    fn test_print(puzzle: Vec<u8>, expected: &[u8]) {
+        let mut actual = Vec::new();
+        super::print(puzzle)
+            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
+            .expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
+    //// GENERAL TESTS
+
     // Easy
     const EASY_STRING: &str =
         "415830090003009104002150006900783000200000381500012400004900063380500040009307500";
@@ -182,6 +202,22 @@ mod tests {
 
     const EASY_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/easy.png");
     const EASY_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/easy.png");
+
+    #[test]
+    fn parse_easy() {
+        test_parse(EASY_STRING, EASY_UNSOLVED.to_vec());
+    }
+
+    #[test]
+    fn solve_easy() {
+        test_solve(EASY_UNSOLVED.to_vec(), EASY_SOLVED.to_vec());
+    }
+
+    #[test]
+    fn print_easy() {
+        test_print(EASY_UNSOLVED.to_vec(), EASY_UNSOLVED_IMAGE);
+        test_print(EASY_SOLVED.to_vec(), EASY_SOLVED_IMAGE);
+    }
 
     // Medium
     const MEDIUM_STRING: &str =
@@ -202,6 +238,22 @@ mod tests {
         include_bytes!("../../../tests/sudoku/unsolved/medium.png");
     const MEDIUM_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/medium.png");
 
+    #[test]
+    fn parse_medium() {
+        test_parse(MEDIUM_STRING, MEDIUM_UNSOLVED.to_vec());
+    }
+
+    #[test]
+    fn solve_medium() {
+        test_solve(MEDIUM_UNSOLVED.to_vec(), MEDIUM_SOLVED.to_vec());
+    }
+
+    #[test]
+    fn print_medium() {
+        test_print(MEDIUM_UNSOLVED.to_vec(), MEDIUM_UNSOLVED_IMAGE);
+        test_print(MEDIUM_SOLVED.to_vec(), MEDIUM_SOLVED_IMAGE);
+    }
+
     // Hard 1
     const HARD1_STRING: &str =
         "000030400900400300300000072009005000800010000700600529000100700601050008040000010";
@@ -219,6 +271,22 @@ mod tests {
 
     const HARD1_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard1.png");
     const HARD1_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard1.png");
+
+    #[test]
+    fn parse_hard1() {
+        test_parse(HARD1_STRING, HARD1_UNSOLVED.to_vec());
+    }
+
+    #[test]
+    fn solve_hard1() {
+        test_solve(HARD1_UNSOLVED.to_vec(), HARD1_SOLVED.to_vec());
+    }
+
+    #[test]
+    fn print_hard1() {
+        test_print(HARD1_UNSOLVED.to_vec(), HARD1_UNSOLVED_IMAGE);
+        test_print(HARD1_SOLVED.to_vec(), HARD1_SOLVED_IMAGE);
+    }
 
     // Hard 2
     const HARD2_STRING: &str =
@@ -238,6 +306,22 @@ mod tests {
     const HARD2_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard2.png");
     const HARD2_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard2.png");
 
+    #[test]
+    fn parse_hard2() {
+        test_parse(HARD2_STRING, HARD2_UNSOLVED.to_vec());
+    }
+
+    #[test]
+    fn solve_hard2() {
+        test_solve(HARD2_UNSOLVED.to_vec(), HARD2_SOLVED.to_vec());
+    }
+
+    #[test]
+    fn print_hard2() {
+        test_print(HARD2_UNSOLVED.to_vec(), HARD2_UNSOLVED_IMAGE);
+        test_print(HARD2_SOLVED.to_vec(), HARD2_SOLVED_IMAGE);
+    }
+
     // Hard 3
     const HARD3_STRING: &str =
         "120300000400000300003050000004200500000080009060005070001500200000090060000007008";
@@ -256,96 +340,14 @@ mod tests {
     const HARD3_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard3.png");
     const HARD3_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard3.png");
 
-    fn test_parse(string: &str, expected: Vec<u8>) {
-        let actual = super::parse(string).expect("should be ok");
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn parse_easy() {
-        test_parse(EASY_STRING, EASY_UNSOLVED.to_vec());
-    }
-
-    #[test]
-    fn parse_medium() {
-        test_parse(MEDIUM_STRING, MEDIUM_UNSOLVED.to_vec());
-    }
-
-    #[test]
-    fn parse_hard1() {
-        test_parse(HARD1_STRING, HARD1_UNSOLVED.to_vec());
-    }
-
-    #[test]
-    fn parse_hard2() {
-        test_parse(HARD2_STRING, HARD2_UNSOLVED.to_vec());
-    }
-
     #[test]
     fn parse_hard3() {
         test_parse(HARD3_STRING, HARD3_UNSOLVED.to_vec());
     }
 
-    fn test_solve(puzzle: Vec<u8>, expected: Vec<u8>) {
-        let acutal = super::solve(&puzzle).expect("should be ok");
-        assert_eq!(acutal, expected);
-    }
-
-    #[test]
-    fn solve_easy() {
-        test_solve(EASY_UNSOLVED.to_vec(), EASY_SOLVED.to_vec());
-    }
-
-    #[test]
-    fn solve_medium() {
-        test_solve(MEDIUM_UNSOLVED.to_vec(), MEDIUM_SOLVED.to_vec());
-    }
-
-    #[test]
-    fn solve_hard1() {
-        test_solve(HARD1_UNSOLVED.to_vec(), HARD1_SOLVED.to_vec());
-    }
-
-    #[test]
-    fn solve_hard2() {
-        test_solve(HARD2_UNSOLVED.to_vec(), HARD2_SOLVED.to_vec());
-    }
-
     #[test]
     fn solve_hard3() {
         test_solve(HARD3_UNSOLVED.to_vec(), HARD3_SOLVED.to_vec());
-    }
-
-    fn test_print(puzzle: Vec<u8>, expected: &[u8]) {
-        let mut actual = Vec::new();
-        super::print(puzzle)
-            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
-            .expect("should be ok");
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn print_easy() {
-        test_print(EASY_UNSOLVED.to_vec(), EASY_UNSOLVED_IMAGE);
-        test_print(EASY_SOLVED.to_vec(), EASY_SOLVED_IMAGE);
-    }
-
-    #[test]
-    fn print_medium() {
-        test_print(MEDIUM_UNSOLVED.to_vec(), MEDIUM_UNSOLVED_IMAGE);
-        test_print(MEDIUM_SOLVED.to_vec(), MEDIUM_SOLVED_IMAGE);
-    }
-
-    #[test]
-    fn print_hard1() {
-        test_print(HARD1_UNSOLVED.to_vec(), HARD1_UNSOLVED_IMAGE);
-        test_print(HARD1_SOLVED.to_vec(), HARD1_SOLVED_IMAGE);
-    }
-
-    #[test]
-    fn print_hard2() {
-        test_print(HARD2_UNSOLVED.to_vec(), HARD2_UNSOLVED_IMAGE);
-        test_print(HARD2_SOLVED.to_vec(), HARD2_SOLVED_IMAGE);
     }
 
     #[test]

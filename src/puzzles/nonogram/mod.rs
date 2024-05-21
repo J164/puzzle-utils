@@ -277,6 +277,215 @@ mod tests {
 
     use super::{Rule, Square};
 
+    fn test_parse(string: &str, expected: Vec<Rule>, bound: usize) {
+        let actual = super::parse(string, bound).expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
+    fn test_narrow(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
+        let mut actual = vec![Square::Blank; col.len() * row.len()];
+        super::narrow(&mut actual, &col, &row);
+        assert_eq!(actual, expected);
+    }
+
+    fn test_backtrack(
+        mut actual: Vec<Square>,
+        col: Vec<Rule>,
+        row: Vec<Rule>,
+        expected: Vec<Square>,
+    ) {
+        super::recursive_backtrack(&mut actual, &col, &row);
+        assert_eq!(actual, expected);
+    }
+
+    fn test_print(col: Vec<Rule>, row: Vec<Rule>, expected: &[u8]) {
+        let mut actual = Vec::new();
+        super::print(col.len() as u32, row.len() as u32, &col, &row)
+            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
+            .expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
+    //// UNIT TESTS
+
+    // Narrow simple
+    fn narrow_simple_col() -> Vec<Rule> {
+        vec![
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+        ]
+    }
+
+    fn narrow_simple_row() -> Vec<Rule> {
+        vec![Rule {
+            values: vec![4],
+            variance: 1,
+        }]
+    }
+
+    fn narrow_simple_expected() -> Vec<Square> {
+        vec![
+            Square::Blank,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Blank,
+        ]
+    }
+
+    #[test]
+    fn narrow_simple() {
+        test_narrow(
+            narrow_simple_col(),
+            narrow_simple_row(),
+            narrow_simple_expected(),
+        );
+        test_narrow(
+            narrow_simple_row(),
+            narrow_simple_col(),
+            narrow_simple_expected(),
+        );
+    }
+
+    // Narrow multi
+    fn narrow_multi_col() -> Vec<Rule> {
+        vec![
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+        ]
+    }
+
+    fn narrow_multi_row() -> Vec<Rule> {
+        vec![Rule {
+            values: vec![1, 2],
+            variance: 1,
+        }]
+    }
+
+    fn narrow_multi_expected() -> Vec<Square> {
+        vec![
+            Square::Blank,
+            Square::Blank,
+            Square::Blank,
+            Square::Filled,
+            Square::Blank,
+        ]
+    }
+
+    #[test]
+    fn narrow_multi() {
+        test_narrow(
+            narrow_multi_col(),
+            narrow_multi_row(),
+            narrow_multi_expected(),
+        );
+        test_narrow(
+            narrow_multi_row(),
+            narrow_multi_col(),
+            narrow_multi_expected(),
+        );
+    }
+
+    // Narrow constrained
+    fn narrow_constrained_col() -> Vec<Rule> {
+        vec![
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![1],
+                variance: 0,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+            Rule {
+                values: vec![0],
+                variance: 1,
+            },
+            Rule {
+                values: vec![],
+                variance: usize::MAX,
+            },
+        ]
+    }
+
+    fn narrow_constrained_row() -> Vec<Rule> {
+        vec![Rule {
+            values: vec![2, 1],
+            variance: 2,
+        }]
+    }
+
+    fn narrow_constrained_expected() -> Vec<Square> {
+        vec![
+            Square::Blocked,
+            Square::Blank,
+            Square::Filled,
+            Square::Blank,
+            Square::Blocked,
+            Square::Filled,
+        ]
+    }
+
+    #[test]
+    fn narrow_constrained() {
+        test_narrow(
+            narrow_constrained_col(),
+            narrow_constrained_row(),
+            narrow_constrained_expected(),
+        );
+        test_narrow(
+            narrow_constrained_row(),
+            narrow_constrained_col(),
+            narrow_constrained_expected(),
+        );
+    }
+
+    //// GENERAL TESTS
+
     // two x two
     const TWO_TWO_WIDTH: usize = 2;
     const TWO_TWO_HEIGHT: usize = 2;
@@ -314,7 +523,7 @@ mod tests {
             Square::Filled,
             Square::Filled,
             Square::Filled,
-            Square::Blank,
+            Square::Blocked,
         ]
     }
 
@@ -329,6 +538,32 @@ mod tests {
 
     const TWO_TWO_UNSOLVED_IMAGE: &[u8] =
         include_bytes!("../../../tests/nonogram/unsolved/two_two.png");
+
+    #[test]
+    fn parse_two_two() {
+        test_parse(TWO_TWO_COL_STRING, two_two_col(), TWO_TWO_HEIGHT);
+        test_parse(TWO_TWO_ROW_STRING, two_two_row(), TWO_TWO_WIDTH);
+    }
+
+    #[test]
+    fn narrow_two_two() {
+        test_narrow(two_two_col(), two_two_row(), two_two_narrowed());
+    }
+
+    #[test]
+    fn recursive_backtrack_two_two() {
+        test_backtrack(
+            two_two_narrowed(),
+            two_two_col(),
+            two_two_row(),
+            two_two_backtracked(),
+        );
+    }
+
+    #[test]
+    fn print_two_two() {
+        test_print(two_two_col(), two_two_row(), TWO_TWO_UNSOLVED_IMAGE);
+    }
 
     // two x three
     const TWO_THREE_WIDTH: usize = 2;
@@ -369,8 +604,8 @@ mod tests {
     fn two_three_narrowed() -> Vec<Square> {
         vec![
             Square::Filled,
-            Square::Blank,
-            Square::Blank,
+            Square::Blocked,
+            Square::Blocked,
             Square::Filled,
             Square::Filled,
             Square::Filled,
@@ -391,88 +626,6 @@ mod tests {
     const TWO_THREE_UNSOLVED_IMAGE: &[u8] =
         include_bytes!("../../../tests/nonogram/unsolved/two_three.png");
 
-    // three x three
-    const THREE_THREE_WIDTH: usize = 3;
-    const THREE_THREE_HEIGHT: usize = 3;
-
-    const THREE_THREE_COL_STRING: &str = "2;1;1";
-    fn three_three_col() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![2],
-                variance: 1,
-            },
-            Rule {
-                values: vec![1],
-                variance: 2,
-            },
-            Rule {
-                values: vec![1],
-                variance: 2,
-            },
-        ]
-    }
-
-    const THREE_THREE_ROW_STRING: &str = "1;1;2";
-    fn three_three_row() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![1],
-                variance: 2,
-            },
-            Rule {
-                values: vec![1],
-                variance: 2,
-            },
-            Rule {
-                values: vec![2],
-                variance: 1,
-            },
-        ]
-    }
-
-    fn three_three_narrowed() -> Vec<Square> {
-        vec![
-            Square::Blank,
-            Square::Blank,
-            Square::Blank,
-            Square::Filled,
-            Square::Blank,
-            Square::Blank,
-            Square::Blank,
-            Square::Filled,
-            Square::Blank,
-        ]
-    }
-
-    fn three_three_backtracked() -> Vec<Square> {
-        vec![
-            Square::Blocked,
-            Square::Blocked,
-            Square::Filled,
-            Square::Filled,
-            Square::Blocked,
-            Square::Blocked,
-            Square::Filled,
-            Square::Filled,
-            Square::Blocked,
-        ]
-    }
-
-    const THREE_THREE_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/unsolved/three_three.png");
-
-    fn test_parse(string: &str, expected: Vec<Rule>, bound: usize) {
-        let actual = super::parse(string, bound).expect("should be ok");
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn parse_two_two() {
-        test_parse(TWO_TWO_COL_STRING, two_two_col(), TWO_TWO_HEIGHT);
-        test_parse(TWO_TWO_ROW_STRING, two_two_row(), TWO_TWO_WIDTH);
-    }
-
     #[test]
     fn parse_two_three() {
         test_parse(TWO_THREE_COL_STRING, two_three_col(), TWO_THREE_HEIGHT);
@@ -480,54 +633,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_three_three() {
-        test_parse(
-            THREE_THREE_COL_STRING,
-            three_three_col(),
-            THREE_THREE_HEIGHT,
-        );
-        test_parse(THREE_THREE_ROW_STRING, three_three_row(), THREE_THREE_WIDTH);
-    }
-
-    fn test_narrow(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
-        let mut actual = vec![Square::Blank; col.len() * row.len()];
-        super::narrow(&mut actual, &col, &row);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn narrow_two_two() {
-        test_narrow(two_two_col(), two_two_row(), two_two_narrowed());
-    }
-
-    #[test]
     fn narrow_two_three() {
         test_narrow(two_three_col(), two_three_row(), two_three_narrowed());
-    }
-
-    #[test]
-    fn narrow_three_three() {
-        test_narrow(three_three_col(), three_three_row(), three_three_narrowed());
-    }
-
-    fn test_backtrack(
-        mut actual: Vec<Square>,
-        col: Vec<Rule>,
-        row: Vec<Rule>,
-        expected: Vec<Square>,
-    ) {
-        super::recursive_backtrack(&mut actual, &col, &row);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn recursive_backtrack_two_two() {
-        test_backtrack(
-            two_two_narrowed(),
-            two_two_col(),
-            two_two_row(),
-            two_two_backtracked(),
-        );
     }
 
     #[test]
@@ -541,39 +648,152 @@ mod tests {
     }
 
     #[test]
-    fn recursive_backtrack_three_three() {
-        test_backtrack(
-            three_three_narrowed(),
-            three_three_col(),
-            three_three_row(),
-            three_three_backtracked(),
-        );
-    }
-
-    fn test_print(col: Vec<Rule>, row: Vec<Rule>, expected: &[u8]) {
-        let mut actual = Vec::new();
-        super::print(col.len() as u32, row.len() as u32, &col, &row)
-            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
-            .expect("should be ok");
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn print_two_two() {
-        test_print(two_two_col(), two_two_row(), TWO_TWO_UNSOLVED_IMAGE);
-    }
-
-    #[test]
     fn print_two_three() {
         test_print(two_three_col(), two_three_row(), TWO_THREE_UNSOLVED_IMAGE);
     }
 
+    // five x five
+    const FIVE_FIVE_WIDTH: usize = 5;
+    const FIVE_FIVE_HEIGHT: usize = 5;
+
+    const FIVE_FIVE_COL_STRING: &str = "1,2;3;4;2;1";
+    fn five_five_col() -> Vec<Rule> {
+        vec![
+            Rule {
+                values: vec![1, 2],
+                variance: 1,
+            },
+            Rule {
+                values: vec![3],
+                variance: 2,
+            },
+            Rule {
+                values: vec![4],
+                variance: 1,
+            },
+            Rule {
+                values: vec![2],
+                variance: 3,
+            },
+            Rule {
+                values: vec![1],
+                variance: 4,
+            },
+        ]
+    }
+
+    const FIVE_FIVE_ROW_STRING: &str = "1,1;1;2;4;4";
+    fn five_five_row() -> Vec<Rule> {
+        vec![
+            Rule {
+                values: vec![1, 1],
+                variance: 2,
+            },
+            Rule {
+                values: vec![1],
+                variance: 4,
+            },
+            Rule {
+                values: vec![2],
+                variance: 3,
+            },
+            Rule {
+                values: vec![4],
+                variance: 1,
+            },
+            Rule {
+                values: vec![4],
+                variance: 1,
+            },
+        ]
+    }
+
+    fn five_five_narrowed() -> Vec<Square> {
+        vec![
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Blocked,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Blocked,
+        ]
+    }
+
+    fn five_five_backtracked() -> Vec<Square> {
+        vec![
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Filled,
+            Square::Blocked,
+            Square::Blocked,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Blocked,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Filled,
+            Square::Blocked,
+        ]
+    }
+
+    const FIVE_FIVE_UNSOLVED_IMAGE: &[u8] =
+        include_bytes!("../../../tests/nonogram/unsolved/five_five.png");
+
     #[test]
-    fn print_three_three() {
-        test_print(
-            three_three_col(),
-            three_three_row(),
-            THREE_THREE_UNSOLVED_IMAGE,
+    fn parse_five_five() {
+        test_parse(FIVE_FIVE_COL_STRING, five_five_col(), FIVE_FIVE_HEIGHT);
+        test_parse(FIVE_FIVE_ROW_STRING, five_five_row(), FIVE_FIVE_WIDTH);
+    }
+
+    #[test]
+    fn narrow_five_five() {
+        test_narrow(five_five_col(), five_five_row(), five_five_narrowed());
+    }
+
+    #[test]
+    fn recursive_backtrack_five_five() {
+        test_backtrack(
+            five_five_narrowed(),
+            five_five_col(),
+            five_five_row(),
+            five_five_backtracked(),
         );
+    }
+
+    #[test]
+    fn print_five_five() {
+        test_print(five_five_col(), five_five_row(), FIVE_FIVE_UNSOLVED_IMAGE);
     }
 }
