@@ -45,11 +45,10 @@ impl Mask {
 
     pub fn candidates(&self, index: usize) -> Vec<u8> {
         let (row, col, boxe) = indicies(index);
+        let mask = self.rows[row] | self.cols[col] | self.boxes[boxe];
 
         (NUM_MIN..=NUM_MAX)
-            .filter(|&candidate| {
-                (self.rows[row] | self.cols[col] | self.boxes[boxe]) & (1u16 << candidate) == 0
-            })
+            .filter(|&candidate| mask & (1u16 << candidate) == 0)
             .collect()
     }
 }
