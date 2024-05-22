@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, mem::take, slice::Iter};
+use std::{
+    mem::{swap, take},
+    slice::Iter,
+};
 
 use super::Square;
 
@@ -29,13 +32,22 @@ impl RuleMachine {
     }
 
     fn find_left(&self, mut grid: Iter<Square>) -> Option<Vec<usize>> {
-        let mut old_state = BTreeMap::from([(0, vec![])]);
-        let mut new_state = BTreeMap::new();
+        let mut old_state: Vec<Option<Vec<usize>>> = vec![None; self.states.len() + 1];
+        let mut new_state: Vec<Option<Vec<usize>>> = vec![None; self.states.len() + 1];
+
+        old_state[0] = Some(vec![]);
 
         'outer: loop {
             let square = grid.next();
+            let mut empty = true;
 
-            for (&state, old_matches) in &old_state {
+            for (state, mut old_matches) in old_state
+                .iter_mut()
+                .enumerate()
+                .filter_map(|(index, matches)| Some((index, take(matches)?)))
+            {
+                empty = false;
+
                 let curr_state = &self.states[state];
                 let next_state = &self.states[state + 1];
 
@@ -43,9 +55,9 @@ impl RuleMachine {
                     Node::Start | Node::Fill => (),
                     Node::Space | Node::End => {
                         if !matches!(square, Some(Square::Filled)) {
-                            let mut matches = old_matches.clone();
-                            matches.push(state);
-                            new_state.insert(state, matches);
+                            let mut old_matches = old_matches.clone();
+                            old_matches.push(state);
+                            new_state[state] = Some(old_matches);
                         }
                     }
                 }
@@ -54,38 +66,34 @@ impl RuleMachine {
                     Node::Start => unreachable!(),
                     Node::Fill => {
                         if !matches!(square, Some(Square::Blocked)) {
-                            let mut matches = old_matches.clone();
-                            matches.push(state + 1);
-                            new_state.insert(state + 1, matches);
+                            old_matches.push(state + 1);
+                            new_state[state + 1] = Some(old_matches);
                         }
                     }
                     Node::Space => {
                         if !matches!(square, Some(Square::Filled)) {
-                            let mut matches = old_matches.clone();
-                            matches.push(state + 1);
-                            new_state.insert(state + 1, matches);
+                            old_matches.push(state + 1);
+                            new_state[state + 1] = Some(old_matches);
                         }
                     }
                     Node::End => {
                         if !matches!(square, Some(Square::Filled)) {
-                            let mut matches = old_matches.clone();
-                            matches.push(state + 1);
-                            new_state.insert(state + 1, matches);
+                            let mut old_matches = old_matches.clone();
+                            old_matches.push(state + 1);
+                            new_state[state + 1] = Some(old_matches);
                         }
 
                         match self.states.get(state + 2) {
                             Some(Node::Fill) => {
                                 if !matches!(square, Some(Square::Blocked)) {
-                                    let mut matches = old_matches.clone();
-                                    matches.push(state + 2);
-                                    new_state.insert(state + 2, matches);
+                                    old_matches.push(state + 2);
+                                    new_state[state + 2] = Some(old_matches);
                                 }
                             }
                             Some(Node::Start | Node::Space | Node::End) => unreachable!(),
                             None => {
-                                let mut matches = old_matches.clone();
-                                matches.push(state + 2);
-                                new_state.insert(state + 2, matches);
+                                old_matches.push(state + 2);
+                                new_state[state + 2] = Some(old_matches);
                                 break 'outer;
                             }
                         }
@@ -93,15 +101,13 @@ impl RuleMachine {
                 }
             }
 
-            if new_state.is_empty() {
+            if empty {
                 return None;
             }
 
-            old_state = take(&mut new_state);
+            swap(&mut old_state, &mut new_state);
         }
 
-        new_state
-            .get_mut(&self.states.len())
-            .map(|solution| take(solution))
+        take(&mut new_state[self.states.len()])
     }
 }
