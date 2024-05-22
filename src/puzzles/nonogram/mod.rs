@@ -1,3 +1,5 @@
+mod narrower;
+
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use ab_glyph::FontRef;
