@@ -100,6 +100,8 @@ impl RuleMachine {
             old_state = take(&mut new_state);
         }
 
-        new_state.get(&self.states.len()).cloned()
+        new_state
+            .get_mut(&self.states.len())
+            .map(|solution| take(solution))
     }
 }
