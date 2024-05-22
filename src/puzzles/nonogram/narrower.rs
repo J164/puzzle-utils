@@ -32,8 +32,8 @@ impl RuleMachine {
     }
 
     fn find_left(&self, mut grid: Iter<Square>) -> Option<Vec<usize>> {
-        let mut old_state: Vec<Option<Vec<usize>>> = vec![None; self.states.len() + 1];
-        let mut new_state: Vec<Option<Vec<usize>>> = vec![None; self.states.len() + 1];
+        let mut old_state = vec![None; self.states.len() + 1];
+        let mut new_state = vec![None; self.states.len() + 1];
 
         old_state[0] = Some(vec![]);
 
