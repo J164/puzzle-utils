@@ -41,7 +41,7 @@ impl RuleMachine {
         }
     }
 
-    pub fn find_guaranteed(&self, mut grid: Vec<&mut Square>) -> Result<bool, NonogramError> {
+    pub fn right_left(&self, mut grid: Vec<&mut Square>) -> Result<bool, NonogramError> {
         let left = find_left(&self.left_states, grid.iter()).ok_or(NonogramError::NoSolution)?;
         let right =
             find_left(&self.right_states, grid.iter().rev()).ok_or(NonogramError::NoSolution)?;

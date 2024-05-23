@@ -1,4 +1,4 @@
-mod narrower;
+mod right_left;
 
 use std::cmp::max;
 
@@ -12,7 +12,7 @@ use thiserror::Error;
 
 use crate::util::{RgbBuffer, SolutionPair, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
-use self::narrower::RuleMachine;
+use self::right_left::RuleMachine;
 
 #[derive(Debug, Error)]
 pub enum NonogramError {
@@ -93,13 +93,13 @@ fn solve(col: Vec<Rule>, row: Vec<Rule>) -> Result<Vec<Square>, NonogramError> {
 
     let mut grid = vec![Square::Blank; width * height];
 
-    narrow(&mut grid, &col, &row)?;
+    right_left(&mut grid, &col, &row)?;
     recursive_backtrack(&mut grid, &col, &row);
 
     Ok(grid)
 }
 
-fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), NonogramError> {
+fn right_left(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), NonogramError> {
     let width = col.len();
 
     let col_machines: Vec<RuleMachine> = col
@@ -115,7 +115,7 @@ fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), Nonogra
         let mut changed = false;
 
         for (index, machine) in col_machines.iter().enumerate() {
-            changed |= machine.find_guaranteed(
+            changed |= machine.right_left(
                 grid[index..]
                     .iter_mut()
                     .step_by(width)
@@ -125,7 +125,7 @@ fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), Nonogra
         }
 
         for (index, machine) in row_machines.iter().enumerate() {
-            changed |= machine.find_guaranteed(
+            changed |= machine.right_left(
                 grid[width * index..width * (index + 1)]
                     .iter_mut()
                     .map(|square| square)
@@ -251,9 +251,9 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    fn test_narrow(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
+    fn test_right_left(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
         let mut actual = vec![Square::Blank; col.len() * row.len()];
-        super::narrow(&mut actual, &col, &row).unwrap();
+        super::right_left(&mut actual, &col, &row).unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -307,7 +307,7 @@ mod tests {
         vec![Rule { values: vec![2] }, Rule { values: vec![1] }]
     }
 
-    fn two_two_narrowed() -> Vec<Square> {
+    fn two_two_right_left() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Filled,
@@ -338,14 +338,14 @@ mod tests {
     }
 
     #[test]
-    fn narrow_two_two() {
-        test_narrow(two_two_col(), two_two_row(), two_two_narrowed());
+    fn right_left_two_two() {
+        test_right_left(two_two_col(), two_two_row(), two_two_right_left());
     }
 
     #[test]
     fn recursive_backtrack_two_two() {
         test_backtrack(
-            two_two_narrowed(),
+            two_two_right_left(),
             two_two_col(),
             two_two_row(),
             two_two_backtracked(),
@@ -382,7 +382,7 @@ mod tests {
         ]
     }
 
-    fn two_three_narrowed() -> Vec<Square> {
+    fn two_three_right_left() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Blocked,
@@ -417,14 +417,14 @@ mod tests {
     }
 
     #[test]
-    fn narrow_two_three() {
-        test_narrow(two_three_col(), two_three_row(), two_three_narrowed());
+    fn right_left_two_three() {
+        test_right_left(two_three_col(), two_three_row(), two_three_right_left());
     }
 
     #[test]
     fn recursive_backtrack_two_three() {
         test_backtrack(
-            two_three_narrowed(),
+            two_three_right_left(),
             two_three_col(),
             two_three_row(),
             two_three_backtracked(),
@@ -469,7 +469,7 @@ mod tests {
         ]
     }
 
-    fn five_five_narrowed() -> Vec<Square> {
+    fn five_five_right_left() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Blocked,
@@ -542,14 +542,14 @@ mod tests {
     }
 
     #[test]
-    fn narrow_five_five() {
-        test_narrow(five_five_col(), five_five_row(), five_five_narrowed());
+    fn right_left_five_five() {
+        test_right_left(five_five_col(), five_five_row(), five_five_right_left());
     }
 
     #[test]
     fn recursive_backtrack_five_five() {
         test_backtrack(
-            five_five_narrowed(),
+            five_five_right_left(),
             five_five_col(),
             five_five_row(),
             five_five_backtracked(),
@@ -724,7 +724,7 @@ mod tests {
         ]
     }
 
-    fn large_narrowed() -> Vec<Square> {
+    fn large_right_left() -> Vec<Square> {
         vec![
             Square::Filled,
             Square::Filled,
@@ -1355,7 +1355,7 @@ mod tests {
     }
 
     fn large_backtracked() -> Vec<Square> {
-        large_narrowed()
+        large_right_left()
     }
 
     const LARGE_UNSOLVED_IMAGE: &[u8] =
@@ -1370,14 +1370,14 @@ mod tests {
     }
 
     #[test]
-    fn narrow_large() {
-        test_narrow(large_col(), large_row(), large_narrowed());
+    fn right_left_large() {
+        test_right_left(large_col(), large_row(), large_right_left());
     }
 
     #[test]
     fn recursive_backtrack_large() {
         test_backtrack(
-            large_narrowed(),
+            large_right_left(),
             large_col(),
             large_row(),
             large_backtracked(),
