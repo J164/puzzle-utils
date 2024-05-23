@@ -115,20 +115,13 @@ fn right_left(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), Non
         let mut changed = false;
 
         for (index, machine) in col_machines.iter().enumerate() {
-            changed |= machine.right_left(
-                grid[index..]
-                    .iter_mut()
-                    .step_by(width)
-                    .map(|square| square)
-                    .collect(),
-            )?;
+            changed |= machine.right_left(grid[index..].iter_mut().step_by(width).collect())?;
         }
 
         for (index, machine) in row_machines.iter().enumerate() {
             changed |= machine.right_left(
                 grid[width * index..width * (index + 1)]
                     .iter_mut()
-                    .map(|square| square)
                     .collect(),
             )?;
         }
@@ -253,7 +246,7 @@ mod tests {
 
     fn test_right_left(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
         let mut actual = vec![Square::Blank; col.len() * row.len()];
-        super::right_left(&mut actual, &col, &row).unwrap();
+        super::right_left(&mut actual, &col, &row).expect("should be ok");
         assert_eq!(actual, expected);
     }
 
