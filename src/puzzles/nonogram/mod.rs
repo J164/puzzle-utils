@@ -1,7 +1,5 @@
 mod narrower;
 
-use std::{cmp::Reverse, collections::BinaryHeap};
-
 use ab_glyph::FontRef;
 use image::ImageBuffer;
 use imageproc::{
@@ -12,6 +10,8 @@ use thiserror::Error;
 
 use crate::util::{RgbBuffer, SolutionPair, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
 
+use self::narrower::RuleMachine;
+
 #[derive(Debug, Error)]
 pub enum NonogramError {
     #[error("puzzle cannot be empty")]
@@ -20,6 +20,8 @@ pub enum NonogramError {
     InvalidRule(String),
     #[error("invalid rule dimension")]
     InvalidRuleDimension,
+    #[error("puzzle has no solution")]
+    NoSolution,
 }
 
 pub fn solve_nonogram(col: &str, row: &str) -> Result<SolutionPair, NonogramError> {
@@ -44,7 +46,6 @@ pub fn solve_nonogram(col: &str, row: &str) -> Result<SolutionPair, NonogramErro
 
 #[derive(Debug, PartialEq)]
 struct Rule {
-    variance: usize,
     values: Vec<usize>,
 }
 
@@ -72,10 +73,7 @@ fn parse(rule: &str, bound: usize) -> Result<Vec<Rule>, NonogramError> {
                 return Err(NonogramError::InvalidRuleDimension);
             }
 
-            Ok(Rule {
-                values,
-                variance: bound - size,
-            })
+            Ok(Rule { values })
         })
         .collect::<Result<Vec<Rule>, NonogramError>>()
 }
@@ -93,108 +91,55 @@ fn solve(col: Vec<Rule>, row: Vec<Rule>) -> Result<Vec<Square>, NonogramError> {
 
     let mut grid = vec![Square::Blank; width * height];
 
-    // TODO: solve nonogram
-    /* IDEA:
-        Each square on grid has three states (blank, filled, blocked)
-        Grid is WIDTH x HEIGHT
-
-        Narrowing:
-
-        1. Define the variance of a rule as the bound of a rule minus its size
-        2. For any value in a rule that is greater than the variance of that rule there are (value - variance) guaranteed squares
-        3. Skip variance squares and fill guaranteed squares
-
-        Recursive backtrack:
-
-        1. Iterate through min heap of rules (row or col) by variance
-        2. IF no fulfilments exist, revert to previous state
-    */
-
-    narrow(&mut grid, &col, &row);
+    narrow(&mut grid, &col, &row)?;
     recursive_backtrack(&mut grid, &col, &row);
 
     Ok(grid)
 }
 
-fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
+fn narrow(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), NonogramError> {
     let width = col.len();
-    let height = row.len();
 
-    for (x, rule) in col.iter().enumerate() {
-        if rule.variance > height / 2 {
-            continue;
-        }
-
-        let mut y = 0;
-        for &value in &rule.values {
-            if value > rule.variance {
-                for k in rule.variance..value {
-                    grid[(y + k) * width + x] = Square::Filled;
-                }
-            }
-            y += value + 1;
-        }
-    }
-
-    for (y, rule) in row.iter().enumerate() {
-        if rule.variance > width / 2 {
-            continue;
-        }
-
-        let mut x = 0;
-        for &value in &rule.values {
-            if value > rule.variance {
-                for k in rule.variance..value {
-                    grid[y * width + x + k] = Square::Filled;
-                }
-            }
-            x += value + 1;
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-enum RecordDirection {
-    Col,
-    Row,
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-struct RuleRecord {
-    variance: usize,
-    index: usize,
-    // Something that keeps track of what possibilities have been tried
-    direction: RecordDirection,
-}
-
-fn recursive_backtrack(grid: &mut [Square], col: &[Rule], row: &[Rule]) {
-    let col_records = col
+    let col_machines: Vec<RuleMachine> = col
         .iter()
-        .enumerate()
-        .map(|(index, &Rule { variance, .. })| RuleRecord {
-            variance,
-            index,
-            direction: RecordDirection::Col,
-        });
-    let row_records = row
+        .map(|rule| RuleMachine::new(&rule.values))
+        .collect();
+    let row_machines: Vec<RuleMachine> = row
         .iter()
-        .enumerate()
-        .map(|(index, &Rule { variance, .. })| RuleRecord {
-            variance,
-            index,
-            direction: RecordDirection::Row,
-        });
+        .map(|rule| RuleMachine::new(&rule.values))
+        .collect();
 
-    let mut heap = BinaryHeap::from_iter(col_records.chain(row_records).map(Reverse));
-    let mut path = vec![heap.pop().expect("heap should be non-empty").0];
+    loop {
+        let mut changed = false;
 
-    while !heap.is_empty() && !path.is_empty() {
-        let record = path.last().expect("path should be non-empty");
+        for (index, machine) in col_machines.iter().enumerate() {
+            changed |= machine.find_guaranteed(
+                grid[index..]
+                    .iter_mut()
+                    .step_by(width)
+                    .map(|square| square)
+                    .collect(),
+            )?;
+        }
 
-        // If possibilites is empty
-        heap.push(Reverse(path.pop().expect("path should be non-empty")));
+        for (index, machine) in row_machines.iter().enumerate() {
+            changed |= machine.find_guaranteed(
+                grid[width * index..width * (index + 1)]
+                    .iter_mut()
+                    .map(|square| square)
+                    .collect(),
+            )?;
+        }
+
+        if !changed {
+            break;
+        }
     }
+
+    Ok(())
 }
+
+fn recursive_backtrack(grid: &mut [Square], col: &[Rule], row: &[Rule]) {}
 
 fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
     let mut image = ImageBuffer::from_pixel(width * 50 + 150, height * 50 + 150, WHITE_PIXEL);
@@ -286,7 +231,7 @@ mod tests {
 
     fn test_narrow(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
         let mut actual = vec![Square::Blank; col.len() * row.len()];
-        super::narrow(&mut actual, &col, &row);
+        super::narrow(&mut actual, &col, &row).unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -308,184 +253,6 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    //// UNIT TESTS
-
-    // Narrow simple
-    fn narrow_simple_col() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-        ]
-    }
-
-    fn narrow_simple_row() -> Vec<Rule> {
-        vec![Rule {
-            values: vec![4],
-            variance: 1,
-        }]
-    }
-
-    fn narrow_simple_expected() -> Vec<Square> {
-        vec![
-            Square::Blank,
-            Square::Filled,
-            Square::Filled,
-            Square::Filled,
-            Square::Blank,
-        ]
-    }
-
-    #[test]
-    fn narrow_simple() {
-        test_narrow(
-            narrow_simple_col(),
-            narrow_simple_row(),
-            narrow_simple_expected(),
-        );
-        test_narrow(
-            narrow_simple_row(),
-            narrow_simple_col(),
-            narrow_simple_expected(),
-        );
-    }
-
-    // Narrow multi
-    fn narrow_multi_col() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-        ]
-    }
-
-    fn narrow_multi_row() -> Vec<Rule> {
-        vec![Rule {
-            values: vec![1, 2],
-            variance: 1,
-        }]
-    }
-
-    fn narrow_multi_expected() -> Vec<Square> {
-        vec![
-            Square::Blank,
-            Square::Blank,
-            Square::Blank,
-            Square::Filled,
-            Square::Blank,
-        ]
-    }
-
-    #[test]
-    fn narrow_multi() {
-        test_narrow(
-            narrow_multi_col(),
-            narrow_multi_row(),
-            narrow_multi_expected(),
-        );
-        test_narrow(
-            narrow_multi_row(),
-            narrow_multi_col(),
-            narrow_multi_expected(),
-        );
-    }
-
-    // Narrow constrained
-    fn narrow_constrained_col() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![1],
-                variance: 0,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-            Rule {
-                values: vec![0],
-                variance: 1,
-            },
-            Rule {
-                values: vec![],
-                variance: usize::MAX,
-            },
-        ]
-    }
-
-    fn narrow_constrained_row() -> Vec<Rule> {
-        vec![Rule {
-            values: vec![2, 1],
-            variance: 2,
-        }]
-    }
-
-    fn narrow_constrained_expected() -> Vec<Square> {
-        vec![
-            Square::Blocked,
-            Square::Blank,
-            Square::Filled,
-            Square::Blank,
-            Square::Blocked,
-            Square::Filled,
-        ]
-    }
-
-    #[test]
-    fn narrow_constrained() {
-        test_narrow(
-            narrow_constrained_col(),
-            narrow_constrained_row(),
-            narrow_constrained_expected(),
-        );
-        test_narrow(
-            narrow_constrained_row(),
-            narrow_constrained_col(),
-            narrow_constrained_expected(),
-        );
-    }
-
     //// GENERAL TESTS
 
     // two x two
@@ -494,30 +261,12 @@ mod tests {
 
     const TWO_TWO_COL_STRING: &str = "2;1";
     fn two_two_col() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![2],
-                variance: 0,
-            },
-            Rule {
-                values: vec![1],
-                variance: 1,
-            },
-        ]
+        vec![Rule { values: vec![2] }, Rule { values: vec![1] }]
     }
 
     const TWO_TWO_ROW_STRING: &str = "2;1";
     fn two_two_row() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![2],
-                variance: 0,
-            },
-            Rule {
-                values: vec![1],
-                variance: 1,
-            },
-        ]
+        vec![Rule { values: vec![2] }, Rule { values: vec![1] }]
     }
 
     fn two_two_narrowed() -> Vec<Square> {
@@ -573,33 +322,15 @@ mod tests {
 
     const TWO_THREE_COL_STRING: &str = "1,1;2";
     fn two_three_col() -> Vec<Rule> {
-        vec![
-            Rule {
-                values: vec![1, 1],
-                variance: 0,
-            },
-            Rule {
-                values: vec![2],
-                variance: 1,
-            },
-        ]
+        vec![Rule { values: vec![1, 1] }, Rule { values: vec![2] }]
     }
 
     const TWO_THREE_ROW_STRING: &str = "1;1;2";
     fn two_three_row() -> Vec<Rule> {
         vec![
-            Rule {
-                values: vec![1],
-                variance: 1,
-            },
-            Rule {
-                values: vec![1],
-                variance: 1,
-            },
-            Rule {
-                values: vec![2],
-                variance: 0,
-            },
+            Rule { values: vec![1] },
+            Rule { values: vec![1] },
+            Rule { values: vec![2] },
         ]
     }
 
@@ -661,52 +392,22 @@ mod tests {
     const FIVE_FIVE_COL_STRING: &str = "1,2;3;4;2;1";
     fn five_five_col() -> Vec<Rule> {
         vec![
-            Rule {
-                values: vec![1, 2],
-                variance: 1,
-            },
-            Rule {
-                values: vec![3],
-                variance: 2,
-            },
-            Rule {
-                values: vec![4],
-                variance: 1,
-            },
-            Rule {
-                values: vec![2],
-                variance: 3,
-            },
-            Rule {
-                values: vec![1],
-                variance: 4,
-            },
+            Rule { values: vec![1, 2] },
+            Rule { values: vec![3] },
+            Rule { values: vec![4] },
+            Rule { values: vec![2] },
+            Rule { values: vec![1] },
         ]
     }
 
     const FIVE_FIVE_ROW_STRING: &str = "1,1;1;2;4;4";
     fn five_five_row() -> Vec<Rule> {
         vec![
-            Rule {
-                values: vec![1, 1],
-                variance: 2,
-            },
-            Rule {
-                values: vec![1],
-                variance: 4,
-            },
-            Rule {
-                values: vec![2],
-                variance: 3,
-            },
-            Rule {
-                values: vec![4],
-                variance: 1,
-            },
-            Rule {
-                values: vec![4],
-                variance: 1,
-            },
+            Rule { values: vec![1, 1] },
+            Rule { values: vec![1] },
+            Rule { values: vec![2] },
+            Rule { values: vec![4] },
+            Rule { values: vec![4] },
         ]
     }
 
