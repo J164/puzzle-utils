@@ -1,21 +1,30 @@
 use std::{
     alloc::{alloc, Layout},
-    ptr,
+    ptr::{self, null_mut},
 };
 
 pub struct Node {
-    pub header: *mut Node,
-    pub left: *mut Node,
-    pub right: *mut Node,
-    pub up: *mut Node,
-    pub down: *mut Node,
-    pub is_header: bool,
+    header: *mut Node,
+    left: *mut Node,
+    right: *mut Node,
+    up: *mut Node,
+    down: *mut Node,
+    is_header: bool,
 }
 
 pub const NODE_LAYOUT: Layout = Layout::new::<Node>();
 
 impl Node {
-    pub fn new(header: *mut Node, row_previous: *mut Node, col_previous: *mut Node) -> *mut Self {
+    /// # Safety
+    ///
+    /// 'header' must be a non-null valid pointer to the header Node in the same column as the new Node
+    /// 'row_previous' must be a valid pointer (possibly null) to a Node in the row to place the new Node
+    /// 'col_previous' must be a valid pointer (possibly null) to a Node in the column to place the new Node
+    pub unsafe fn new(
+        header: *mut Node,
+        row_previous: *mut Node,
+        col_previous: *mut Node,
+    ) -> *mut Self {
         let ptr = unsafe { alloc(NODE_LAYOUT) } as *mut Node;
         let mut node = Node {
             header,
@@ -51,7 +60,10 @@ impl Node {
         ptr
     }
 
-    pub fn new_header(previous: *mut Node) -> *mut Self {
+    /// # Safety
+    ///
+    /// 'previous' must be a valid pointer (possibly null) to a header Node
+    pub unsafe fn new_header(previous: *mut Node) -> *mut Self {
         let ptr = unsafe { alloc(NODE_LAYOUT) } as *mut Node;
         let mut node = Node {
             header: ptr::null_mut(),
@@ -123,5 +135,77 @@ impl Node {
             (*up).down = node;
             (*down).up = node;
         }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn iter_right(node: *mut Node) -> impl Iterator<Item = *mut Node> {
+        RightNodeIterator {
+            original: node,
+            current: node,
+        }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn iter_down(node: *mut Node) -> impl Iterator<Item = *mut Node> {
+        DownNodeIterator {
+            original: node,
+            current: node,
+        }
+    }
+}
+
+struct RightNodeIterator {
+    original: *mut Node,
+    current: *mut Node,
+}
+
+impl Iterator for RightNodeIterator {
+    type Item = *mut Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current.is_null() {
+            return None;
+        }
+
+        let node = self.current;
+        let next = unsafe { (*node).right };
+
+        self.current = if next == self.original {
+            null_mut()
+        } else {
+            next
+        };
+        
+        Some(node)
+    }
+}
+
+pub struct DownNodeIterator {
+    original: *mut Node,
+    current: *mut Node,
+}
+
+impl Iterator for DownNodeIterator {
+    type Item = *mut Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current.is_null() {
+            return None;
+        }
+
+        let node = self.current;
+        let next = unsafe { (*node).down };
+
+        self.current = if next == self.original {
+            null_mut()
+        } else {
+            next
+        };
+        
+        Some(node)
     }
 }

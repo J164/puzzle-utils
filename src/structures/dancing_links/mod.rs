@@ -12,7 +12,7 @@ pub enum DancingLinksError {
 }
 
 pub struct DancingMatrix {
-    root: *mut Node, // Points to the first column header
+    root: *mut Node, // Points to a dummy column header
 }
 
 impl DancingMatrix {
@@ -29,14 +29,14 @@ impl DancingMatrix {
             + 1;
         let mut rows = vec![null_mut::<Node>(); num_rows];
 
-        let root = Node::new_header(null_mut());
+        let root = unsafe { Node::new_header(null_mut()) };
         let mut curr = root;
         for constraint in constraints {
-            let new = Node::new_header(curr);
+            let new = unsafe { Node::new_header(curr) };
 
             let mut col_curr = new;
             for index in constraint {
-                let new = Node::new(new, rows[index], col_curr);
+                let new = unsafe { Node::new(new, rows[index], col_curr) };
 
                 rows[index] = new;
                 col_curr = new;
@@ -51,24 +51,9 @@ impl DancingMatrix {
 
 impl Drop for DancingMatrix {
     fn drop(&mut self) {
-        let mut curr = self.root;
-        loop {
-            let node = curr;
-            curr = unsafe { (*node).right };
-
-            let mut col_curr = node;
-            loop {
-                let col_node = col_curr;
-                col_curr = unsafe { (*col_node).down };
-                unsafe { dealloc(col_node as *mut u8, NODE_LAYOUT) };
-
-                if col_curr == node {
-                    break;
-                }
-            }
-
-            if curr == self.root {
-                break;
+        for header in unsafe { Node::iter_right(self.root) } {
+            for node in unsafe { Node::iter_down(header) } {
+                unsafe { dealloc(node as *mut u8, NODE_LAYOUT) };
             }
         }
     }
