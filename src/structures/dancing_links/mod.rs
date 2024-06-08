@@ -1,11 +1,20 @@
 mod node;
 
-use std::{alloc::dealloc, ptr::null_mut};
+use std::{alloc::dealloc, mem::take, ptr::null_mut};
 
 use node::{Node, NODE_LAYOUT};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum DancingLinksError {
+    #[error("Index out of bounds")]
+    IndexError,
+}
 
 pub struct DancingMatrix {
     root: *mut Node, // Points to a dummy column header
+    rows: Vec<*mut Node>,
+    partial_solution: Vec<usize>,
 }
 
 impl DancingMatrix {
@@ -34,11 +43,40 @@ impl DancingMatrix {
             curr = new;
         }
 
-        DancingMatrix { root }
+        DancingMatrix {
+            root,
+            rows,
+            partial_solution: Vec::new(),
+        }
     }
 
-    pub fn solve(self) -> Option<Vec<usize>> {
-        self.solve_helper(Vec::new())
+    pub fn add_solution(&mut self, row: usize) -> Result<(), DancingLinksError> {
+        if row >= self.rows.len() {
+            return Err(DancingLinksError::IndexError);
+        }
+
+        self.partial_solution.push(row);
+        let row = self.rows[row];
+
+        if row.is_null() {
+            return Ok(());
+        }
+
+        for node in unsafe { Node::iter_right(row) } {
+            unsafe { Node::cover_column(node) };
+        }
+
+        for node in unsafe { Node::iter_right(row).skip(1) } {
+            unsafe { Node::free_chain(node) };
+        }
+        unsafe { Node::free_chain(row) };
+
+        Ok(())
+    }
+
+    pub fn solve(mut self) -> Option<Vec<usize>> {
+        let partial_solution = take(&mut self.partial_solution);
+        self.solve_helper(partial_solution)
     }
 
     fn solve_helper(&self, solution: Vec<usize>) -> Option<Vec<usize>> {
@@ -109,6 +147,26 @@ mod tests {
         ];
 
         let matrix = super::DancingMatrix::new(constraints);
+        let mut solution = matrix.solve().expect("should be Some");
+        solution.sort();
+
+        assert_eq!(solution, vec![1, 3, 5]);
+    }
+
+    #[test]
+    fn miri_add_solution() {
+        let constraints = vec![
+            vec![0, 1],
+            vec![4, 5],
+            vec![3, 4],
+            vec![0, 1, 2],
+            vec![2, 3],
+            vec![3, 4],
+            vec![0, 2, 4, 5],
+        ];
+
+        let mut matrix = super::DancingMatrix::new(constraints);
+        matrix.add_solution(3).expect("should be Ok");
         let mut solution = matrix.solve().expect("should be Some");
         solution.sort();
 
