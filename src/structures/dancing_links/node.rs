@@ -1,15 +1,16 @@
 use std::{
-    alloc::{alloc, Layout},
-    ptr::{self, null_mut},
+    alloc::{alloc, dealloc, Layout},
+    ptr::{null_mut, read},
 };
 
 pub struct Node {
+    is_header: bool,
     header: *mut Node,
     left: *mut Node,
     right: *mut Node,
     up: *mut Node,
     down: *mut Node,
-    is_header: bool,
+    row: usize,
 }
 
 pub const NODE_LAYOUT: Layout = Layout::new::<Node>();
@@ -24,15 +25,17 @@ impl Node {
         header: *mut Node,
         row_previous: *mut Node,
         col_previous: *mut Node,
+        row: usize,
     ) -> *mut Self {
         let ptr = unsafe { alloc(NODE_LAYOUT) } as *mut Node;
         let mut node = Node {
+            is_header: false,
             header,
             left: ptr,
             right: ptr,
             up: ptr,
             down: ptr,
-            is_header: false,
+            row,
         };
 
         if !row_previous.is_null() {
@@ -63,15 +66,16 @@ impl Node {
     /// # Safety
     ///
     /// 'previous' must be a valid pointer (possibly null) to a header Node
-    pub unsafe fn new_header(previous: *mut Node) -> *mut Self {
+    pub unsafe fn new_header(previous: *mut Node, num_rows: usize) -> *mut Self {
         let ptr = unsafe { alloc(NODE_LAYOUT) } as *mut Node;
         let mut node = Node {
-            header: ptr::null_mut(),
+            is_header: true,
+            header: null_mut(),
             left: ptr,
             right: ptr,
             up: ptr,
             down: ptr,
-            is_header: true,
+            row: num_rows,
         };
 
         if !previous.is_null() {
@@ -92,8 +96,105 @@ impl Node {
     /// # Safety
     ///
     /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn is_header(node: *mut Node) -> bool {
+        unsafe { (*node).is_header }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn left(node: *mut Node) -> *mut Node {
+        unsafe { (*node).left }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn right(node: *mut Node) -> *mut Node {
+        unsafe { (*node).right }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn up(node: *mut Node) -> *mut Node {
+        unsafe { (*node).up }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn down(node: *mut Node) -> *mut Node {
+        unsafe { (*node).down }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn row(node: *mut Node) -> usize {
+        unsafe { (*node).row }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn cover_column(mut node: *mut Node) {
+        if unsafe { !(*node).is_header } {
+            node = unsafe { (*node).header };
+        }
+
+        unsafe { Node::cover_horizontal(node) };
+
+        for row in unsafe { Node::iter_down(node).skip(1) } {
+            for col in unsafe { Node::iter_right(row).skip(1) } {
+                unsafe { Node::cover_vertical(col) };
+                unsafe { (*(*col).header).row -= 1 };
+            }
+        }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn uncover_column(mut node: *mut Node) {
+        if unsafe { !(*node).is_header } {
+            node = unsafe { (*node).header };
+        }
+
+        for row in unsafe { Node::iter_up(node).skip(1) } {
+            for col in unsafe { Node::iter_left(row).skip(1) } {
+                unsafe { (*(*col).header).row += 1 };
+                unsafe { Node::uncover_vertical(col) };
+            }
+        }
+
+        unsafe { Node::uncover_horizontal(node) };
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn free_chain(mut node: *mut Node) {
+        if unsafe { !(*node).is_header } {
+            node = unsafe { (*node).header };
+        }
+
+        for row in unsafe { Node::iter_down(node).skip(1) } {
+            for col in unsafe { Node::iter_right(row).skip(1) } {
+                unsafe { dealloc(col as *mut u8, NODE_LAYOUT) };
+            }
+
+            unsafe { dealloc(row as *mut u8, NODE_LAYOUT) }
+        }
+
+        unsafe { dealloc(node as *mut u8, NODE_LAYOUT) };
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
     unsafe fn cover_horizontal(node: *mut Node) {
-        let Node { left, right, .. } = unsafe { ptr::read(node) };
+        let Node { left, right, .. } = unsafe { read(node) };
 
         unsafe {
             (*left).right = right;
@@ -105,7 +206,7 @@ impl Node {
     ///
     /// 'node' must be a valid non-null pointer to a Node
     unsafe fn cover_vertical(node: *mut Node) {
-        let Node { up, down, .. } = unsafe { ptr::read(node) };
+        let Node { up, down, .. } = unsafe { read(node) };
 
         unsafe {
             (*up).down = down;
@@ -117,7 +218,7 @@ impl Node {
     ///
     /// 'node' must be a valid non-null pointer to a Node
     unsafe fn uncover_horizontal(node: *mut Node) {
-        let Node { left, right, .. } = unsafe { ptr::read(node) };
+        let Node { left, right, .. } = unsafe { read(node) };
 
         unsafe {
             (*left).right = node;
@@ -129,11 +230,21 @@ impl Node {
     ///
     /// 'node' must be a valid non-null pointer to a Node
     unsafe fn uncover_vertical(node: *mut Node) {
-        let Node { up, down, .. } = unsafe { ptr::read(node) };
+        let Node { up, down, .. } = unsafe { read(node) };
 
         unsafe {
             (*up).down = node;
             (*down).up = node;
+        }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn iter_left(node: *mut Node) -> impl Iterator<Item = *mut Node> {
+        LeftNodeIterator {
+            original: node,
+            current: node,
         }
     }
 
@@ -150,11 +261,47 @@ impl Node {
     /// # Safety
     ///
     /// 'node' must be a valid non-null pointer to a Node
+    pub unsafe fn iter_up(node: *mut Node) -> impl Iterator<Item = *mut Node> {
+        UpNodeIterator {
+            original: node,
+            current: node,
+        }
+    }
+
+    /// # Safety
+    ///
+    /// 'node' must be a valid non-null pointer to a Node
     pub unsafe fn iter_down(node: *mut Node) -> impl Iterator<Item = *mut Node> {
         DownNodeIterator {
             original: node,
             current: node,
         }
+    }
+}
+
+struct LeftNodeIterator {
+    original: *mut Node,
+    current: *mut Node,
+}
+
+impl Iterator for LeftNodeIterator {
+    type Item = *mut Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current.is_null() {
+            return None;
+        }
+
+        let node = self.current;
+        let next = unsafe { (*node).left };
+
+        self.current = if next == self.original {
+            null_mut()
+        } else {
+            next
+        };
+
+        Some(node)
     }
 }
 
@@ -179,7 +326,33 @@ impl Iterator for RightNodeIterator {
         } else {
             next
         };
-        
+
+        Some(node)
+    }
+}
+
+pub struct UpNodeIterator {
+    original: *mut Node,
+    current: *mut Node,
+}
+
+impl Iterator for UpNodeIterator {
+    type Item = *mut Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current.is_null() {
+            return None;
+        }
+
+        let node = self.current;
+        let next = unsafe { (*node).up };
+
+        self.current = if next == self.original {
+            null_mut()
+        } else {
+            next
+        };
+
         Some(node)
     }
 }
@@ -205,7 +378,7 @@ impl Iterator for DownNodeIterator {
         } else {
             next
         };
-        
+
         Some(node)
     }
 }

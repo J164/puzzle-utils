@@ -26,4 +26,4 @@ jobs:
         rustup override set nightly
         cargo miri setup
     - name: Run unsafe tests
-      run: cargo miri test unsafe_
+      run: cargo miri test miri_
