@@ -19,12 +19,12 @@ pub struct DancingMatrix {
 
 impl DancingMatrix {
     pub fn new(constraints: Vec<Vec<usize>>) -> Self {
-        let num_rows = *constraints
+        let num_rows = constraints
             .iter()
-            .map(|constraint| constraint.iter().max().unwrap_or(&0))
+            .flatten()
             .max()
-            .expect("constraints should be non-empty")
-            + 1;
+            .map(|x| x + 1)
+            .unwrap_or(0);
         let mut rows = vec![null_mut::<Node>(); num_rows];
 
         let root = unsafe { Node::new_header(null_mut(), 0) };
@@ -134,6 +134,16 @@ impl Drop for DancingMatrix {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn miri_empty() {
+        let constraints = vec![];
+
+        let matrix = super::DancingMatrix::new(constraints);
+        let solution = matrix.solve().expect("should be Some");
+
+        assert_eq!(solution, Vec::<usize>::new());
+    }
+
     #[test]
     fn miri_basic() {
         let constraints = vec![
