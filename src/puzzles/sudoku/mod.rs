@@ -1,15 +1,40 @@
-mod mask;
-
 use ab_glyph::FontRef;
 use image::RgbImage;
 use imageproc::drawing::draw_text_mut;
 use thiserror::Error;
 
-use crate::util::{RgbBuffer, SolutionPair, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
-
-use self::mask::Mask;
+use crate::{
+    structures::dancing_links::DancingMatrix,
+    util::{RgbBuffer, SolutionPair, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
+};
 
 const GRID_SIZE: usize = 9;
+
+const SUDOKU_CONSTRAINTS: [[usize; 9]; 324] = const {
+    let mut constraints = [[0; 9]; 324];
+
+    let mut index = 0;
+
+    while index < 81 {
+        let mut inner_index = 0;
+        while inner_index < 9 {
+            constraints[index][inner_index] = index * 9 + inner_index;
+            constraints[index + 81][inner_index] = (index % 9) + inner_index * 9 + (index / 9) * 81;
+            constraints[index + 162][inner_index] = index + inner_index * 81;
+            constraints[index + 243][inner_index] = (index % 9)
+                + (inner_index % 3) * 9
+                + (inner_index / 3) * 81
+                + ((index % 27) / 9) * 27
+                + (index / 27) * 243;
+            inner_index += 1;
+        }
+        index += 1;
+    }
+
+    constraints
+};
+
+const NUM_ROWS: usize = 729;
 
 #[derive(Debug, Error)]
 pub enum SudokuError {
@@ -44,73 +69,27 @@ fn parse(puzzle: &str) -> Result<Vec<u8>, SudokuError> {
     Ok(puzzle)
 }
 
-fn solve(puzzle: &Vec<u8>) -> Result<Vec<u8>, SudokuError> {
-    let mut puzzle = puzzle.to_owned();
-    let mut stack = Vec::with_capacity(GRID_SIZE * GRID_SIZE);
-
-    let mut mask = Mask::new();
+fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
+    let mut matrix = DancingMatrix::new(
+        SUDOKU_CONSTRAINTS
+            .iter()
+            .map(|constraint| constraint.iter()),
+        NUM_ROWS,
+    );
 
     for (index, &value) in puzzle.iter().enumerate() {
         if value == 0 {
             continue;
         }
 
-        mask.set(index, value);
+        matrix
+            .add_solution(index * 9 + (value as usize) - 1)
+            .expect("should be in range");
     }
 
-    if let Some(square) = next_blank(&puzzle, &mask, 0) {
-        stack.push(square);
-    } else {
-        return Ok(puzzle);
-    }
-
-    while !stack.is_empty() {
-        let Square { index, candidates } = stack.last_mut().expect("stack should be non-empty");
-
-        let previous = puzzle[*index];
-        if previous != 0 {
-            puzzle[*index] = 0;
-            mask.clear(*index, previous);
-        }
-
-        if candidates.is_empty() {
-            stack.pop();
-            continue;
-        }
-
-        let value = candidates.pop().expect("candidates should be non-empty");
-        puzzle[*index] = value;
-        mask.set(*index, value);
-
-        if let Some(square) = next_blank(&puzzle, &mask, *index) {
-            stack.push(square);
-        } else {
-            return Ok(puzzle);
-        }
-    }
-
-    Err(SudokuError::NoSolution)
-}
-
-struct Square {
-    index: usize,
-    candidates: Vec<u8>,
-}
-
-fn next_blank(puzzle: &[u8], mask: &Mask, start: usize) -> Option<Square> {
-    puzzle[start..]
-        .iter()
-        .enumerate()
-        .find_map(|(index, &value)| {
-            if value == 0 {
-                Some(Square {
-                    index: index + start,
-                    candidates: mask.candidates(index + start),
-                })
-            } else {
-                None
-            }
-        })
+    let mut solution = matrix.solve().ok_or(SudokuError::NoSolution)?;
+    solution.sort();
+    Ok(solution.iter().map(|num| (num % 9) as u8 + 1).collect())
 }
 
 fn print(puzzle: Vec<u8>) -> RgbBuffer {
@@ -209,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_easy() {
+    fn miri_solve_easy() {
         test_solve(EASY_UNSOLVED.to_vec(), EASY_SOLVED.to_vec());
     }
 
@@ -244,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_medium() {
+    fn miri_solve_medium() {
         test_solve(MEDIUM_UNSOLVED.to_vec(), MEDIUM_SOLVED.to_vec());
     }
 
@@ -278,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_hard1() {
+    fn miri_solve_hard1() {
         test_solve(HARD1_UNSOLVED.to_vec(), HARD1_SOLVED.to_vec());
     }
 
@@ -312,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_hard2() {
+    fn miri_solve_hard2() {
         test_solve(HARD2_UNSOLVED.to_vec(), HARD2_SOLVED.to_vec());
     }
 
@@ -346,7 +325,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_hard3() {
+    fn miri_solve_hard3() {
         test_solve(HARD3_UNSOLVED.to_vec(), HARD3_SOLVED.to_vec());
     }
 

@@ -9,6 +9,8 @@ use thiserror::Error;
 pub enum DancingLinksError {
     #[error("Index out of bounds")]
     IndexError,
+    #[error("Row cannot be added to solution")]
+    InvalidRow,
 }
 
 pub struct DancingMatrix {
@@ -18,28 +20,29 @@ pub struct DancingMatrix {
 }
 
 impl DancingMatrix {
-    pub fn new(constraints: Vec<Vec<usize>>) -> Self {
-        let num_rows = constraints
-            .iter()
-            .flatten()
-            .max()
-            .map(|x| x + 1)
-            .unwrap_or(0);
+    pub fn new<'a>(
+        constraints: impl Iterator<Item = impl Iterator<Item = &'a usize>>,
+        num_rows: usize,
+    ) -> Self {
         let mut rows = vec![null_mut::<Node>(); num_rows];
 
-        let root = unsafe { Node::new_header(null_mut(), 0) };
+        let root = unsafe { Node::new_header(null_mut()) };
         let mut curr = root;
         for constraint in constraints {
-            let new = unsafe { Node::new_header(curr, constraint.len()) };
+            let new = unsafe { Node::new_header(curr) };
 
+            let mut num_rows = 0;
             let mut col_curr = new;
-            for index in constraint {
+            for &index in constraint {
                 let new = unsafe { Node::new(new, rows[index], col_curr, index) };
 
                 rows[index] = new;
                 col_curr = new;
+
+                num_rows += 1;
             }
 
+            unsafe { Node::set_num_rows(new, num_rows) };
             curr = new;
         }
 
@@ -59,7 +62,11 @@ impl DancingMatrix {
         let row = self.rows[row];
 
         if row.is_null() {
-            return Ok(());
+            return Err(DancingLinksError::InvalidRow);
+        }
+
+        for node in unsafe { Node::iter_down(Node::header(row)).skip(1) } {
+            self.rows[unsafe { Node::row(node) }] = null_mut();
         }
 
         for node in unsafe { Node::iter_right(row) } {
@@ -86,7 +93,7 @@ impl DancingMatrix {
 
         let constraint = unsafe { Node::iter_right(self.root) }
             .skip(1)
-            .max_by(|first, second| unsafe { Node::row(*first).cmp(&Node::row(*second)) })
+            .min_by(|first, second| unsafe { Node::row(*first).cmp(&Node::row(*second)) })
             .expect("Iterator should be non empty");
 
         unsafe { Node::cover_column(constraint) };
@@ -102,7 +109,6 @@ impl DancingMatrix {
                 for node in unsafe { Node::iter_right(row).skip(1) } {
                     unsafe { Node::free_chain(node) };
                 }
-
                 unsafe { Node::free_chain(constraint) };
 
                 return Some(solution);
@@ -136,9 +142,10 @@ impl Drop for DancingMatrix {
 mod tests {
     #[test]
     fn miri_empty() {
-        let constraints = vec![];
+        let constraints: [[usize; 0]; 0] = [];
 
-        let matrix = super::DancingMatrix::new(constraints);
+        let matrix =
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 0);
         let solution = matrix.solve().expect("should be Some");
 
         assert_eq!(solution, Vec::<usize>::new());
@@ -146,7 +153,7 @@ mod tests {
 
     #[test]
     fn miri_basic() {
-        let constraints = vec![
+        let constraints: [Vec<usize>; 7] = [
             vec![0, 1],
             vec![4, 5],
             vec![3, 4],
@@ -156,7 +163,8 @@ mod tests {
             vec![0, 2, 4, 5],
         ];
 
-        let matrix = super::DancingMatrix::new(constraints);
+        let matrix =
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 6);
         let mut solution = matrix.solve().expect("should be Some");
         solution.sort();
 
@@ -164,8 +172,8 @@ mod tests {
     }
 
     #[test]
-    fn miri_add_solution() {
-        let constraints = vec![
+    fn miri_remove_empty_row() {
+        let constraints: [Vec<usize>; 7] = [
             vec![0, 1],
             vec![4, 5],
             vec![3, 4],
@@ -175,7 +183,29 @@ mod tests {
             vec![0, 2, 4, 5],
         ];
 
-        let mut matrix = super::DancingMatrix::new(constraints);
+        let mut matrix =
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 6);
+        matrix.add_solution(1).expect("should be Ok");
+
+        let actual = matrix.add_solution(0).expect_err("should be Err");
+
+        assert!(matches!(actual, super::DancingLinksError::InvalidRow));
+    }
+
+    #[test]
+    fn miri_add_solution() {
+        let constraints: [Vec<usize>; 7] = [
+            vec![0, 1],
+            vec![4, 5],
+            vec![3, 4],
+            vec![0, 1, 2],
+            vec![2, 3],
+            vec![3, 4],
+            vec![0, 2, 4, 5],
+        ];
+
+        let mut matrix =
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 6);
         matrix.add_solution(3).expect("should be Ok");
         let mut solution = matrix.solve().expect("should be Some");
         solution.sort();
