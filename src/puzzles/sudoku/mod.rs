@@ -4,7 +4,7 @@ use imageproc::drawing::draw_text_mut;
 use thiserror::Error;
 
 use crate::{
-    structures::dancing_links::DancingMatrix,
+    structures::dancing_links::{DancingLinksError, DancingMatrix},
     util::{RgbBuffer, SolutionPair, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
 };
 
@@ -34,7 +34,7 @@ const SUDOKU_CONSTRAINTS: [[usize; 9]; 324] = const {
     constraints
 };
 
-const NUM_ROWS: usize = 729;
+const NUM_CONSTRAINT_ROWS: usize = 729;
 
 #[derive(Debug, Error)]
 pub enum SudokuError {
@@ -74,7 +74,7 @@ fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
         SUDOKU_CONSTRAINTS
             .iter()
             .map(|constraint| constraint.iter()),
-        NUM_ROWS,
+        NUM_CONSTRAINT_ROWS,
     );
 
     for (index, &value) in puzzle.iter().enumerate() {
@@ -82,9 +82,12 @@ fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
             continue;
         }
 
-        matrix
-            .add_solution(index * 9 + (value as usize) - 1)
-            .expect("should be in range");
+        let result = matrix.add_solution(index * 9 + (value as usize) - 1);
+
+        match result {
+            Err(DancingLinksError::InvalidRow) => Err(SudokuError::NoSolution),
+            _ => Ok(()),
+        }?;
     }
 
     let mut solution = matrix.solve().ok_or(SudokuError::NoSolution)?;
@@ -149,8 +152,8 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    fn test_solve(puzzle: Vec<u8>, expected: Vec<u8>) {
-        let acutal = super::solve(&puzzle).expect("should be ok");
+    fn test_solve(puzzle: &[u8], expected: &[u8]) {
+        let acutal = super::solve(puzzle).expect("should be ok");
         assert_eq!(acutal, expected);
     }
 
@@ -189,7 +192,7 @@ mod tests {
 
     #[test]
     fn miri_solve_easy() {
-        test_solve(EASY_UNSOLVED.to_vec(), EASY_SOLVED.to_vec());
+        test_solve(&EASY_UNSOLVED, &EASY_SOLVED);
     }
 
     #[test]
@@ -224,7 +227,7 @@ mod tests {
 
     #[test]
     fn miri_solve_medium() {
-        test_solve(MEDIUM_UNSOLVED.to_vec(), MEDIUM_SOLVED.to_vec());
+        test_solve(&MEDIUM_UNSOLVED, &MEDIUM_SOLVED);
     }
 
     #[test]
@@ -258,7 +261,7 @@ mod tests {
 
     #[test]
     fn miri_solve_hard1() {
-        test_solve(HARD1_UNSOLVED.to_vec(), HARD1_SOLVED.to_vec());
+        test_solve(&HARD1_UNSOLVED, &HARD1_SOLVED);
     }
 
     #[test]
@@ -292,7 +295,7 @@ mod tests {
 
     #[test]
     fn miri_solve_hard2() {
-        test_solve(HARD2_UNSOLVED.to_vec(), HARD2_SOLVED.to_vec());
+        test_solve(&HARD2_UNSOLVED, &HARD2_SOLVED);
     }
 
     #[test]
@@ -326,12 +329,41 @@ mod tests {
 
     #[test]
     fn miri_solve_hard3() {
-        test_solve(HARD3_UNSOLVED.to_vec(), HARD3_SOLVED.to_vec());
+        test_solve(&HARD3_UNSOLVED, &HARD3_SOLVED);
     }
 
     #[test]
     fn print_hard3() {
         test_print(HARD3_UNSOLVED.to_vec(), HARD3_UNSOLVED_IMAGE);
         test_print(HARD3_SOLVED.to_vec(), HARD3_SOLVED_IMAGE);
+    }
+
+    // Impossible
+    const IMPOSSIBLE_STRING: &str =
+        "731000008000500042400009700020304000005000400000180006000708005090020100006090000";
+
+    const IMPOSSIBLE_UNSOLVED: [u8; 81] = [
+        7, 3, 1, 0, 0, 0, 0, 0, 8, 0, 0, 0, 5, 0, 0, 0, 4, 2, 4, 0, 0, 0, 0, 9, 7, 0, 0, 0, 2, 0,
+        3, 0, 4, 0, 0, 0, 0, 0, 5, 0, 0, 0, 4, 0, 0, 0, 0, 0, 1, 8, 0, 0, 0, 6, 0, 0, 0, 7, 0, 8,
+        0, 0, 5, 0, 9, 0, 0, 2, 0, 1, 0, 0, 0, 0, 6, 0, 9, 0, 0, 0, 0,
+    ];
+
+    const IMPOSSIBLE_UNSOLVED_IMAGE: &[u8] =
+        include_bytes!("../../../tests/sudoku/unsolved/impossible.png");
+
+    #[test]
+    fn parse_impossible() {
+        test_parse(IMPOSSIBLE_STRING, IMPOSSIBLE_UNSOLVED.to_vec());
+    }
+
+    #[test]
+    fn miri_solve_impossible() {
+        let actual = super::solve(&IMPOSSIBLE_UNSOLVED).expect_err("should be Err");
+        assert!(matches!(actual, super::SudokuError::NoSolution));
+    }
+
+    #[test]
+    fn print_impossible() {
+        test_print(IMPOSSIBLE_UNSOLVED.to_vec(), IMPOSSIBLE_UNSOLVED_IMAGE);
     }
 }
