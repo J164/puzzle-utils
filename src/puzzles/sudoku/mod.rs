@@ -34,8 +34,6 @@ const SUDOKU_CONSTRAINTS: [[usize; 9]; 324] = const {
     constraints
 };
 
-const NUM_CONSTRAINT_ROWS: usize = 729;
-
 #[derive(Debug, Error)]
 pub enum SudokuError {
     #[error("invalid integer `{0}`, must be integer 1-9 (use `0` for an empty space)")]
@@ -74,7 +72,6 @@ fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
         SUDOKU_CONSTRAINTS
             .iter()
             .map(|constraint| constraint.iter()),
-        NUM_CONSTRAINT_ROWS,
     );
 
     for (index, &value) in puzzle.iter().enumerate() {

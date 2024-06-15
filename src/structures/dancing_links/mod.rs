@@ -21,28 +21,27 @@ pub struct DancingMatrix {
 
 impl DancingMatrix {
     pub fn new<'a>(
-        constraints: impl Iterator<Item = impl Iterator<Item = &'a usize>>,
-        num_rows: usize,
+        constraints: impl Iterator<Item = impl ExactSizeIterator<Item = &'a usize>>,
     ) -> Self {
-        let mut rows = vec![null_mut::<Node>(); num_rows];
+        let mut rows = Vec::new();
 
-        let root = unsafe { Node::new_header(null_mut()) };
+        let root = unsafe { Node::new_header(null_mut(), 0) };
         let mut curr = root;
         for constraint in constraints {
-            let new = unsafe { Node::new_header(curr) };
+            let new = unsafe { Node::new_header(curr, constraint.len()) };
 
-            let mut num_rows = 0;
             let mut col_curr = new;
             for &index in constraint {
+                if index >= rows.len() {
+                    rows.resize(index + 1, null_mut());
+                }
+
                 let new = unsafe { Node::new(new, rows[index], col_curr, index) };
 
                 rows[index] = new;
                 col_curr = new;
-
-                num_rows += 1;
             }
 
-            unsafe { Node::set_num_rows(new, num_rows) };
             curr = new;
         }
 
@@ -145,7 +144,7 @@ mod tests {
         let constraints: [[usize; 0]; 0] = [];
 
         let matrix =
-            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 0);
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()));
         let solution = matrix.solve().expect("should be Some");
 
         assert_eq!(solution, Vec::<usize>::new());
@@ -164,7 +163,7 @@ mod tests {
         ];
 
         let matrix =
-            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 6);
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()));
         let mut solution = matrix.solve().expect("should be Some");
         solution.sort();
 
@@ -184,7 +183,7 @@ mod tests {
         ];
 
         let mut matrix =
-            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 6);
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()));
         matrix.add_solution(1).expect("should be Ok");
 
         let actual = matrix.add_solution(0).expect_err("should be Err");
@@ -205,7 +204,7 @@ mod tests {
         ];
 
         let mut matrix =
-            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()), 6);
+            super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()));
         matrix.add_solution(3).expect("should be Ok");
         let mut solution = matrix.solve().expect("should be Some");
         solution.sort();

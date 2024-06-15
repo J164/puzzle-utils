@@ -4,7 +4,6 @@ use std::{
 };
 
 pub struct Node {
-    is_header: bool,
     header: *mut Node,
     left: *mut Node,
     right: *mut Node,
@@ -29,7 +28,6 @@ impl Node {
     ) -> *mut Self {
         let ptr = unsafe { alloc(NODE_LAYOUT) } as *mut Node;
         let mut node = Node {
-            is_header: false,
             header,
             left: ptr,
             right: ptr,
@@ -66,16 +64,15 @@ impl Node {
     /// # Safety
     ///
     /// 'previous' must be a valid pointer (possibly null) to a header Node
-    pub unsafe fn new_header(previous: *mut Node) -> *mut Self {
+    pub unsafe fn new_header(previous: *mut Node, num_rows: usize) -> *mut Self {
         let ptr = unsafe { alloc(NODE_LAYOUT) } as *mut Node;
         let mut node = Node {
-            is_header: true,
             header: null_mut(),
             left: ptr,
             right: ptr,
             up: ptr,
             down: ptr,
-            row: 0,
+            row: num_rows,
         };
 
         if !previous.is_null() {
@@ -96,22 +93,8 @@ impl Node {
     /// # Safety
     ///
     /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn is_header(node: *mut Node) -> bool {
-        unsafe { (*node).is_header }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
     pub unsafe fn header(node: *mut Node) -> *mut Node {
         unsafe { (*node).header }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn left(node: *mut Node) -> *mut Node {
-        unsafe { (*node).left }
     }
 
     /// # Safety
@@ -124,36 +107,15 @@ impl Node {
     /// # Safety
     ///
     /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn up(node: *mut Node) -> *mut Node {
-        unsafe { (*node).up }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn down(node: *mut Node) -> *mut Node {
-        unsafe { (*node).down }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
     pub unsafe fn row(node: *mut Node) -> usize {
         unsafe { (*node).row }
     }
 
     /// # Safety
     ///
-    /// 'node' must be a valid non-null pointer to a header Node
-    pub unsafe fn set_num_rows(node: *mut Node, num_rows: usize) {
-        unsafe { (*node).row = num_rows }
-    }
-
-    /// # Safety
-    ///
     /// 'node' must be a valid non-null pointer to a Node
     pub unsafe fn cover_column(mut node: *mut Node) {
-        if unsafe { !(*node).is_header } {
+        if unsafe { !(*node).header.is_null() } {
             node = unsafe { (*node).header };
         }
 
@@ -171,7 +133,7 @@ impl Node {
     ///
     /// 'node' must be a valid non-null pointer to a Node
     pub unsafe fn uncover_column(mut node: *mut Node) {
-        if unsafe { !(*node).is_header } {
+        if unsafe { !(*node).header.is_null() } {
             node = unsafe { (*node).header };
         }
 
@@ -189,7 +151,7 @@ impl Node {
     ///
     /// 'node' must be a valid non-null pointer to a Node
     pub unsafe fn free_chain(mut node: *mut Node) {
-        if unsafe { !(*node).is_header } {
+        if unsafe { !(*node).header.is_null() } {
             node = unsafe { (*node).header };
         }
 
