@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use image::{ImageBuffer, ImageFormat, Rgb};
 use rand::{seq::IteratorRandom, thread_rng};
 
@@ -25,7 +25,7 @@ impl SolutionPair {
 }
 
 impl IntoResponse for SolutionPair {
-    fn into_response(self) -> axum::response::Response {
+    fn into_response(self) -> Response {
         let mut bytes = Vec::new();
         self.unsolved
             .write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)
