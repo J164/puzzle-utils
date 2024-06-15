@@ -81,14 +81,13 @@ fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
 
         let result = matrix.add_solution(index * 9 + (value as usize) - 1);
 
-        match result {
-            Err(DancingLinksError::InvalidRow) => Err(SudokuError::NoSolution),
-            _ => Ok(()),
-        }?;
+        if matches!(result, Err(DancingLinksError::InvalidRow)) {
+            return Err(SudokuError::NoSolution);
+        }
     }
 
-    let mut solution = matrix.solve().ok_or(SudokuError::NoSolution)?;
-    solution.sort();
+    let mut solution = matrix.solve().map_err(|_| SudokuError::NoSolution)?;
+    solution.sort_unstable();
     Ok(solution.iter().map(|num| (num % 9) as u8 + 1).collect())
 }
 

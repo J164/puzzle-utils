@@ -11,6 +11,8 @@ pub enum DancingLinksError {
     IndexError,
     #[error("Row cannot be added to solution")]
     InvalidRow,
+    #[error("No solution exists")]
+    NoSolution,
 }
 
 pub struct DancingMatrix {
@@ -80,14 +82,19 @@ impl DancingMatrix {
         Ok(())
     }
 
-    pub fn solve(mut self) -> Option<Vec<usize>> {
-        let partial_solution = take(&mut self.partial_solution);
-        self.solve_helper(partial_solution)
+    pub fn solve(mut self) -> Result<Vec<usize>, DancingLinksError> {
+        let mut partial_solution = take(&mut self.partial_solution);
+
+        if self.solve_helper(&mut partial_solution) {
+            Ok(partial_solution)
+        } else {
+            Err(DancingLinksError::NoSolution)
+        }
     }
 
-    fn solve_helper(&self, solution: Vec<usize>) -> Option<Vec<usize>> {
+    fn solve_helper(&self, solution: &mut Vec<usize>) -> bool {
         if self.is_empty() {
-            return Some(solution);
+            return true;
         }
 
         let constraint = unsafe { Node::iter_right(self.root) }
@@ -97,29 +104,30 @@ impl DancingMatrix {
 
         unsafe { Node::cover_column(constraint) };
         for row in unsafe { Node::iter_down(constraint).skip(1) } {
-            let mut solution = solution.clone();
             solution.push(unsafe { Node::row(row) });
 
             for node in unsafe { Node::iter_right(row).skip(1) } {
                 unsafe { Node::cover_column(node) };
             }
 
-            if let Some(solution) = self.solve_helper(solution) {
+            if self.solve_helper(solution) {
                 for node in unsafe { Node::iter_right(row).skip(1) } {
                     unsafe { Node::free_chain(node) };
                 }
                 unsafe { Node::free_chain(constraint) };
 
-                return Some(solution);
+                return true;
             }
 
             for node in unsafe { Node::iter_left(row).skip(1) } {
                 unsafe { Node::uncover_column(node) };
             }
+
+            solution.pop();
         }
         unsafe { Node::uncover_column(constraint) };
 
-        None
+        false
     }
 
     fn is_empty(&self) -> bool {
@@ -165,7 +173,7 @@ mod tests {
         let matrix =
             super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()));
         let mut solution = matrix.solve().expect("should be Some");
-        solution.sort();
+        solution.sort_unstable();
 
         assert_eq!(solution, vec![1, 3, 5]);
     }
@@ -207,7 +215,7 @@ mod tests {
             super::DancingMatrix::new(constraints.iter().map(|constraint| constraint.iter()));
         matrix.add_solution(3).expect("should be Ok");
         let mut solution = matrix.solve().expect("should be Some");
-        solution.sort();
+        solution.sort_unstable();
 
         assert_eq!(solution, vec![1, 3, 5]);
     }
