@@ -213,148 +213,51 @@ impl Node {
             (*down).up = node;
         }
     }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn iter_left(node: *mut Node) -> impl Iterator<Item = *mut Node> {
-        LeftNodeIterator {
-            original: node,
-            current: node,
-        }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn iter_right(node: *mut Node) -> impl Iterator<Item = *mut Node> {
-        RightNodeIterator {
-            original: node,
-            current: node,
-        }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn iter_up(node: *mut Node) -> impl Iterator<Item = *mut Node> {
-        UpNodeIterator {
-            original: node,
-            current: node,
-        }
-    }
-
-    /// # Safety
-    ///
-    /// 'node' must be a valid non-null pointer to a Node
-    pub unsafe fn iter_down(node: *mut Node) -> impl Iterator<Item = *mut Node> {
-        DownNodeIterator {
-            original: node,
-            current: node,
-        }
-    }
 }
 
-struct LeftNodeIterator {
-    original: *mut Node,
-    current: *mut Node,
-}
-
-impl Iterator for LeftNodeIterator {
-    type Item = *mut Node;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current.is_null() {
-            return None;
+macro_rules! node_iterator {
+    ($direction:ident, $struct_name:ident, $fn_name:ident) => {
+        struct $struct_name {
+            original: *mut Node,
+            current: *mut Node,
         }
 
-        let node = self.current;
-        let next = unsafe { (*node).left };
+        impl Iterator for $struct_name {
+            type Item = *mut Node;
 
-        self.current = if next == self.original {
-            null_mut()
-        } else {
-            next
-        };
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.current.is_null() {
+                    return None;
+                }
 
-        Some(node)
-    }
-}
+                let node = self.current;
+                let next = unsafe { (*node).$direction };
 
-struct RightNodeIterator {
-    original: *mut Node,
-    current: *mut Node,
-}
+                self.current = if next == self.original {
+                    null_mut()
+                } else {
+                    next
+                };
 
-impl Iterator for RightNodeIterator {
-    type Item = *mut Node;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current.is_null() {
-            return None;
+                Some(node)
+            }
         }
 
-        let node = self.current;
-        let next = unsafe { (*node).right };
-
-        self.current = if next == self.original {
-            null_mut()
-        } else {
-            next
-        };
-
-        Some(node)
-    }
-}
-
-pub struct UpNodeIterator {
-    original: *mut Node,
-    current: *mut Node,
-}
-
-impl Iterator for UpNodeIterator {
-    type Item = *mut Node;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current.is_null() {
-            return None;
+        impl Node {
+            /// # Safety
+            ///
+            /// 'node' must be a valid non-null pointer to a Node
+            pub unsafe fn $fn_name(node: *mut Node) -> impl Iterator<Item = *mut Node> {
+                $struct_name {
+                    original: node,
+                    current: node,
+                }
+            }
         }
-
-        let node = self.current;
-        let next = unsafe { (*node).up };
-
-        self.current = if next == self.original {
-            null_mut()
-        } else {
-            next
-        };
-
-        Some(node)
-    }
+    };
 }
 
-pub struct DownNodeIterator {
-    original: *mut Node,
-    current: *mut Node,
-}
-
-impl Iterator for DownNodeIterator {
-    type Item = *mut Node;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current.is_null() {
-            return None;
-        }
-
-        let node = self.current;
-        let next = unsafe { (*node).down };
-
-        self.current = if next == self.original {
-            null_mut()
-        } else {
-            next
-        };
-
-        Some(node)
-    }
-}
+node_iterator!(left, LeftNodeIterator, iter_left);
+node_iterator!(right, RightNodeIterator, iter_right);
+node_iterator!(up, UpNodeIterator, iter_up);
+node_iterator!(down, DownNodeIterator, iter_down);
