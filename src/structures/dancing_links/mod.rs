@@ -83,16 +83,14 @@ impl DancingMatrix {
     }
 
     pub fn solve(mut self) -> Result<Vec<usize>, DancingLinksError> {
-        let mut partial_solution = take(&mut self.partial_solution);
-
-        if self.solve_helper(&mut partial_solution) {
-            Ok(partial_solution)
+        if self.solve_helper() {
+            Ok(take(&mut self.partial_solution))
         } else {
             Err(DancingLinksError::NoSolution)
         }
     }
 
-    fn solve_helper(&self, solution: &mut Vec<usize>) -> bool {
+    fn solve_helper(&mut self) -> bool {
         if self.is_empty() {
             return true;
         }
@@ -104,13 +102,13 @@ impl DancingMatrix {
 
         unsafe { Node::cover_column(constraint) };
         for row in unsafe { Node::iter_down(constraint).skip(1) } {
-            solution.push(unsafe { Node::row(row) });
+            self.partial_solution.push(unsafe { Node::row(row) });
 
             for node in unsafe { Node::iter_right(row).skip(1) } {
                 unsafe { Node::cover_column(node) };
             }
 
-            if self.solve_helper(solution) {
+            if self.solve_helper() {
                 for node in unsafe { Node::iter_right(row).skip(1) } {
                     unsafe { Node::free_chain(node) };
                 }
@@ -123,7 +121,7 @@ impl DancingMatrix {
                 unsafe { Node::uncover_column(node) };
             }
 
-            solution.pop();
+            self.partial_solution.pop();
         }
         unsafe { Node::uncover_column(constraint) };
 
