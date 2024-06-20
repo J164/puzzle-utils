@@ -19,7 +19,7 @@ pub enum NonogramError {
     #[error("puzzle cannot be empty")]
     EmptyPuzzle,
     #[error("invalid rule `{0}`")]
-    InvalidRule(String),
+    InvalidRule(Box<str>),
     #[error("invalid rule dimension")]
     InvalidRuleDimension,
     #[error("puzzle has no solution")]
@@ -61,7 +61,7 @@ fn parse(rule: &str, bound: usize) -> Result<Vec<Rule>, NonogramError> {
                 .map(|x| {
                     let value = x
                         .parse::<usize>()
-                        .or(Err(NonogramError::InvalidRule(x.to_string())))?;
+                        .or(Err(NonogramError::InvalidRule(x.into())))?;
 
                     size += value;
 
