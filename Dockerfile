@@ -1,4 +1,4 @@
-FROM rust:1.78 as build
+FROM rust:1.79 as build
 
 RUN USER=root cargo new --bin puzzles
 WORKDIR /puzzles
@@ -15,7 +15,7 @@ COPY ./resources ./resources
 RUN rm ./target/release/deps/puzzles*
 RUN cargo build --release
 
-FROM rust:1.78-slim
+FROM rust:1.79-slim
 
 EXPOSE 8080
 
