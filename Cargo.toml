@@ -5,6 +5,7 @@ authors = ["J164"]
 rust-version = "1.79.0"
 edition = "2021"
 license = "MIT"
+description = "Puzzle solving utilities"
 repository = "https://github.com/J164/puzzle-utils"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
