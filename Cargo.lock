@@ -730,6 +730,7 @@ dependencies = [
  "image",
  "imageproc",
  "rand",
+ "serde",
  "thiserror",
 ]
 

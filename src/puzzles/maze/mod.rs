@@ -3,6 +3,7 @@ mod recursive_backtrack;
 use std::collections::VecDeque;
 
 use image::RgbImage;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     puzzles::maze::recursive_backtrack::recursive_backtrack,
@@ -15,7 +16,7 @@ pub enum MazeAlgorithm {
     RecursiveBacktrack,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MazeNode {
     right: bool,
     down: bool,
@@ -30,7 +31,7 @@ impl MazeNode {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MazeDirection {
     Right,
     Down,
