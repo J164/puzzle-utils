@@ -10,7 +10,10 @@ use imageproc::{
 };
 use thiserror::Error;
 
-use crate::util::{RgbBuffer, SolutionPair, BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL};
+use crate::{
+    util::{BLACK_PIXEL, GRAY_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
+    RgbBuffer,
+};
 
 use self::right_left::RuleMachine;
 
@@ -26,33 +29,9 @@ pub enum NonogramError {
     NoSolution,
 }
 
-pub fn solve_nonogram(col: &str, row: &str) -> Result<SolutionPair, NonogramError> {
-    let width = col.split(';').count();
-    let height = row.split(';').count();
-
-    if width == 0 || height == 0 {
-        return Err(NonogramError::EmptyPuzzle);
-    }
-
-    let col = parse(col, height)?;
-    let row = parse(row, width)?;
-
-    let unsolved = print(width as u32, height as u32, &row, &col);
-
-    let grid = solve(col, row)?;
-
-    let solved = print_solution(width as u32, height as u32, unsolved.clone(), grid);
-
-    Ok(SolutionPair::new(unsolved, solved))
-}
-
-#[derive(Debug, PartialEq)]
-struct Rule {
-    values: Vec<usize>,
-}
-
-fn parse(rule: &str, bound: usize) -> Result<Vec<Rule>, NonogramError> {
-    rule.split(';')
+pub fn parse_nonogram_rules(rules: &str, bound: usize) -> Result<Vec<Vec<usize>>, NonogramError> {
+    rules
+        .split(';')
         .map(|rule| {
             let mut size = 0;
 
@@ -75,9 +54,9 @@ fn parse(rule: &str, bound: usize) -> Result<Vec<Rule>, NonogramError> {
                 return Err(NonogramError::InvalidRuleDimension);
             }
 
-            Ok(Rule { values })
+            Ok(values)
         })
-        .collect::<Result<Vec<Rule>, NonogramError>>()
+        .collect::<Result<Vec<Vec<usize>>, NonogramError>>()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -87,7 +66,7 @@ enum Square {
     Blocked,
 }
 
-fn solve(col: Vec<Rule>, row: Vec<Rule>) -> Result<Vec<Square>, NonogramError> {
+pub fn solve_nonogram(col: &[Vec<usize>], row: &[Vec<usize>]) -> Result<Vec<bool>, NonogramError> {
     let width = col.len();
     let height = row.len();
 
@@ -96,20 +75,21 @@ fn solve(col: Vec<Rule>, row: Vec<Rule>) -> Result<Vec<Square>, NonogramError> {
     right_left(&mut grid, &col, &row)?;
     recursive_backtrack(&mut grid, &col, &row);
 
-    Ok(grid)
+    Ok(grid
+        .iter()
+        .map(|square| matches!(square, Square::Filled))
+        .collect())
 }
 
-fn right_left(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), NonogramError> {
+fn right_left(
+    grid: &mut [Square],
+    col: &[Vec<usize>],
+    row: &[Vec<usize>],
+) -> Result<(), NonogramError> {
     let width = col.len();
 
-    let col_machines: Vec<RuleMachine> = col
-        .iter()
-        .map(|rule| RuleMachine::new(&rule.values))
-        .collect();
-    let row_machines: Vec<RuleMachine> = row
-        .iter()
-        .map(|rule| RuleMachine::new(&rule.values))
-        .collect();
+    let col_machines: Vec<RuleMachine> = col.iter().map(|rule| RuleMachine::new(&rule)).collect();
+    let row_machines: Vec<RuleMachine> = row.iter().map(|rule| RuleMachine::new(&rule)).collect();
 
     loop {
         let mut changed = false;
@@ -134,9 +114,14 @@ fn right_left(grid: &mut [Square], col: &[Rule], row: &[Rule]) -> Result<(), Non
     Ok(())
 }
 
-fn recursive_backtrack(grid: &mut [Square], col: &[Rule], row: &[Rule]) {}
+fn recursive_backtrack(grid: &mut [Square], col: &[Vec<usize>], row: &[Vec<usize>]) {}
 
-fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
+pub fn print_unsolved_nonogram(
+    width: u32,
+    height: u32,
+    col: &[Vec<usize>],
+    row: &[Vec<usize>],
+) -> RgbBuffer {
     let rule_width = max(150, width * 10);
     let rule_height = max(150, height * 10);
 
@@ -151,7 +136,7 @@ fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
     for (x, rule) in col.iter().enumerate() {
         let x = (x as u32) * 50 + rule_width + 15;
 
-        for (y, rule) in rule.values.iter().enumerate() {
+        for (y, rule) in rule.iter().enumerate() {
             let y = (y as u32) * 30 + 10;
 
             draw_text_mut(
@@ -177,7 +162,6 @@ fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
             30.0,
             &font,
             &rule
-                .values
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<_>>()
@@ -210,9 +194,14 @@ fn print(width: u32, height: u32, col: &[Rule], row: &[Rule]) -> RgbBuffer {
     image
 }
 
-fn print_solution(width: u32, height: u32, mut image: RgbBuffer, grid: Vec<Square>) -> RgbBuffer {
+pub fn print_nonogram_solution(
+    width: u32,
+    height: u32,
+    mut image: RgbBuffer,
+    grid: &[bool],
+) -> RgbBuffer {
     for (i, square) in grid.iter().enumerate() {
-        if !matches!(square, Square::Filled) {
+        if !square {
             continue;
         }
 
@@ -235,16 +224,16 @@ mod tests {
 
     use image::ImageFormat;
 
-    use crate::util::RgbBuffer;
+    use crate::RgbBuffer;
 
-    use super::{Rule, Square};
+    use super::Square;
 
-    fn test_parse(string: &str, expected: Vec<Rule>, bound: usize) {
-        let actual = super::parse(string, bound).expect("should be ok");
+    fn test_parse(string: &str, expected: Vec<Vec<usize>>, bound: usize) {
+        let actual = super::parse_nonogram_rules(string, bound).expect("should be ok");
         assert_eq!(actual, expected);
     }
 
-    fn test_right_left(col: Vec<Rule>, row: Vec<Rule>, expected: Vec<Square>) {
+    fn test_right_left(col: Vec<Vec<usize>>, row: Vec<Vec<usize>>, expected: Vec<Square>) {
         let mut actual = vec![Square::Blank; col.len() * row.len()];
         super::right_left(&mut actual, &col, &row).expect("should be ok");
         assert_eq!(actual, expected);
@@ -252,17 +241,22 @@ mod tests {
 
     fn test_backtrack(
         mut actual: Vec<Square>,
-        col: Vec<Rule>,
-        row: Vec<Rule>,
+        col: Vec<Vec<usize>>,
+        row: Vec<Vec<usize>>,
         expected: Vec<Square>,
     ) {
         super::recursive_backtrack(&mut actual, &col, &row);
         assert_eq!(actual, expected);
     }
 
-    fn test_print(col: Vec<Rule>, row: Vec<Rule>, expected: &[u8]) -> RgbBuffer {
+    fn test_solve(col: Vec<Vec<usize>>, row: Vec<Vec<usize>>, expected: Vec<bool>) {
+        let actual = super::solve_nonogram(&col, &row).expect("should be ok");
+        assert_eq!(actual, expected);
+    }
+
+    fn test_print(col: Vec<Vec<usize>>, row: Vec<Vec<usize>>, expected: &[u8]) -> RgbBuffer {
         let mut actual = Vec::new();
-        let image = super::print(col.len() as u32, row.len() as u32, &col, &row);
+        let image = super::print_unsolved_nonogram(col.len() as u32, row.len() as u32, &col, &row);
         image
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
             .expect("should be ok");
@@ -274,11 +268,11 @@ mod tests {
         width: usize,
         height: usize,
         image: RgbBuffer,
-        grid: Vec<Square>,
+        grid: Vec<bool>,
         expected: &[u8],
     ) {
         let mut actual = Vec::new();
-        super::print_solution(width as u32, height as u32, image, grid)
+        super::print_nonogram_solution(width as u32, height as u32, image, &grid)
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
             .expect("should be ok");
         assert_eq!(actual, expected);
@@ -291,13 +285,13 @@ mod tests {
     const TWO_TWO_HEIGHT: usize = 2;
 
     const TWO_TWO_COL_STRING: &str = "2;1";
-    fn two_two_col() -> Vec<Rule> {
-        vec![Rule { values: vec![2] }, Rule { values: vec![1] }]
+    fn two_two_col() -> Vec<Vec<usize>> {
+        vec![vec![2], vec![1]]
     }
 
     const TWO_TWO_ROW_STRING: &str = "2;1";
-    fn two_two_row() -> Vec<Rule> {
-        vec![Rule { values: vec![2] }, Rule { values: vec![1] }]
+    fn two_two_row() -> Vec<Vec<usize>> {
+        vec![vec![2], vec![1]]
     }
 
     fn two_two_right_left() -> Vec<Square> {
@@ -316,6 +310,10 @@ mod tests {
             Square::Filled,
             Square::Blocked,
         ]
+    }
+
+    fn two_two_solved() -> Vec<bool> {
+        vec![true, true, true, false]
     }
 
     const TWO_TWO_UNSOLVED_IMAGE: &[u8] =
@@ -346,13 +344,18 @@ mod tests {
     }
 
     #[test]
+    fn solve_two_two() {
+        test_solve(two_two_col(), two_two_row(), two_two_solved());
+    }
+
+    #[test]
     fn print_two_two() {
         let unsolved = test_print(two_two_col(), two_two_row(), TWO_TWO_UNSOLVED_IMAGE);
         test_print_solution(
             TWO_TWO_WIDTH,
             TWO_TWO_HEIGHT,
             unsolved,
-            two_two_backtracked(),
+            two_two_solved(),
             TWO_TWO_SOLVED_IMAGE,
         );
     }
@@ -362,17 +365,13 @@ mod tests {
     const TWO_THREE_HEIGHT: usize = 3;
 
     const TWO_THREE_COL_STRING: &str = "1,1;2";
-    fn two_three_col() -> Vec<Rule> {
-        vec![Rule { values: vec![1, 1] }, Rule { values: vec![2] }]
+    fn two_three_col() -> Vec<Vec<usize>> {
+        vec![vec![1, 1], vec![2]]
     }
 
     const TWO_THREE_ROW_STRING: &str = "1;1;2";
-    fn two_three_row() -> Vec<Rule> {
-        vec![
-            Rule { values: vec![1] },
-            Rule { values: vec![1] },
-            Rule { values: vec![2] },
-        ]
+    fn two_three_row() -> Vec<Vec<usize>> {
+        vec![vec![1], vec![1], vec![2]]
     }
 
     fn two_three_right_left() -> Vec<Square> {
@@ -395,6 +394,10 @@ mod tests {
             Square::Filled,
             Square::Filled,
         ]
+    }
+
+    fn two_three_solved() -> Vec<bool> {
+        vec![true, false, false, true, true, true]
     }
 
     const TWO_THREE_UNSOLVED_IMAGE: &[u8] =
@@ -425,13 +428,18 @@ mod tests {
     }
 
     #[test]
+    fn solve_two_three() {
+        test_solve(two_three_col(), two_three_row(), two_three_solved());
+    }
+
+    #[test]
     fn print_two_three() {
         let unsolved = test_print(two_three_col(), two_three_row(), TWO_THREE_UNSOLVED_IMAGE);
         test_print_solution(
             TWO_THREE_WIDTH,
             TWO_THREE_HEIGHT,
             unsolved,
-            two_three_backtracked(),
+            two_three_solved(),
             TWO_THREE_SOLVED_IMAGE,
         );
     }
@@ -441,25 +449,13 @@ mod tests {
     const FIVE_FIVE_HEIGHT: usize = 5;
 
     const FIVE_FIVE_COL_STRING: &str = "1,2;3;4;2;1";
-    fn five_five_col() -> Vec<Rule> {
-        vec![
-            Rule { values: vec![1, 2] },
-            Rule { values: vec![3] },
-            Rule { values: vec![4] },
-            Rule { values: vec![2] },
-            Rule { values: vec![1] },
-        ]
+    fn five_five_col() -> Vec<Vec<usize>> {
+        vec![vec![1, 2], vec![3], vec![4], vec![2], vec![1]]
     }
 
     const FIVE_FIVE_ROW_STRING: &str = "1,1;1;2;4;4";
-    fn five_five_row() -> Vec<Rule> {
-        vec![
-            Rule { values: vec![1, 1] },
-            Rule { values: vec![1] },
-            Rule { values: vec![2] },
-            Rule { values: vec![4] },
-            Rule { values: vec![4] },
-        ]
+    fn five_five_row() -> Vec<Vec<usize>> {
+        vec![vec![1, 1], vec![1], vec![2], vec![4], vec![4]]
     }
 
     fn five_five_right_left() -> Vec<Square> {
@@ -522,6 +518,13 @@ mod tests {
         ]
     }
 
+    fn five_five_solved() -> Vec<bool> {
+        vec![
+            true, false, false, false, true, false, false, true, false, false, false, true, true,
+            false, false, true, true, true, true, false, true, true, true, true, false,
+        ]
+    }
+
     const FIVE_FIVE_UNSOLVED_IMAGE: &[u8] =
         include_bytes!("../../../tests/nonogram/unsolved/five_five.png");
 
@@ -550,13 +553,18 @@ mod tests {
     }
 
     #[test]
+    fn solve_five_five() {
+        test_solve(five_five_col(), five_five_row(), five_five_solved());
+    }
+
+    #[test]
     fn print_five_five() {
         let unsolved = test_print(five_five_col(), five_five_row(), FIVE_FIVE_UNSOLVED_IMAGE);
         test_print_solution(
             FIVE_FIVE_WIDTH,
             FIVE_FIVE_HEIGHT,
             unsolved,
-            five_five_backtracked(),
+            five_five_solved(),
             FIVE_FIVE_SOLVED_IMAGE,
         );
     }
@@ -566,154 +574,64 @@ mod tests {
     const LARGE_HEIGHT: usize = 25;
 
     const LARGE_COL_STRING: &str = "2,3,4,3;1,3,2;7,2,3;8,1,5;4,6,6;4,1,1,3,5;4,1,3,1,3;7,2,1;3,1,1,4,2;1,1,3,3;7,1,3;5,3;4,1,1,1,3,1;2,4,3,2;3,5,3,3;5,3,2,4;2,1,3,3,4;2,6,4;2,1,8,3;2,1,11,3;2,1,3,2,3,3;2,1,3,15;1,1,1,15;6,3,3;4,3,1";
-    fn large_col() -> Vec<Rule> {
+    fn large_col() -> Vec<Vec<usize>> {
         vec![
-            Rule {
-                values: vec![2, 3, 4, 3],
-            },
-            Rule {
-                values: vec![1, 3, 2],
-            },
-            Rule {
-                values: vec![7, 2, 3],
-            },
-            Rule {
-                values: vec![8, 1, 5],
-            },
-            Rule {
-                values: vec![4, 6, 6],
-            },
-            Rule {
-                values: vec![4, 1, 1, 3, 5],
-            },
-            Rule {
-                values: vec![4, 1, 3, 1, 3],
-            },
-            Rule {
-                values: vec![7, 2, 1],
-            },
-            Rule {
-                values: vec![3, 1, 1, 4, 2],
-            },
-            Rule {
-                values: vec![1, 1, 3, 3],
-            },
-            Rule {
-                values: vec![7, 1, 3],
-            },
-            Rule { values: vec![5, 3] },
-            Rule {
-                values: vec![4, 1, 1, 1, 3, 1],
-            },
-            Rule {
-                values: vec![2, 4, 3, 2],
-            },
-            Rule {
-                values: vec![3, 5, 3, 3],
-            },
-            Rule {
-                values: vec![5, 3, 2, 4],
-            },
-            Rule {
-                values: vec![2, 1, 3, 3, 4],
-            },
-            Rule {
-                values: vec![2, 6, 4],
-            },
-            Rule {
-                values: vec![2, 1, 8, 3],
-            },
-            Rule {
-                values: vec![2, 1, 11, 3],
-            },
-            Rule {
-                values: vec![2, 1, 3, 2, 3, 3],
-            },
-            Rule {
-                values: vec![2, 1, 3, 15],
-            },
-            Rule {
-                values: vec![1, 1, 1, 15],
-            },
-            Rule {
-                values: vec![6, 3, 3],
-            },
-            Rule {
-                values: vec![4, 3, 1],
-            },
+            vec![2, 3, 4, 3],
+            vec![1, 3, 2],
+            vec![7, 2, 3],
+            vec![8, 1, 5],
+            vec![4, 6, 6],
+            vec![4, 1, 1, 3, 5],
+            vec![4, 1, 3, 1, 3],
+            vec![7, 2, 1],
+            vec![3, 1, 1, 4, 2],
+            vec![1, 1, 3, 3],
+            vec![7, 1, 3],
+            vec![5, 3],
+            vec![4, 1, 1, 1, 3, 1],
+            vec![2, 4, 3, 2],
+            vec![3, 5, 3, 3],
+            vec![5, 3, 2, 4],
+            vec![2, 1, 3, 3, 4],
+            vec![2, 6, 4],
+            vec![2, 1, 8, 3],
+            vec![2, 1, 11, 3],
+            vec![2, 1, 3, 2, 3, 3],
+            vec![2, 1, 3, 15],
+            vec![1, 1, 1, 15],
+            vec![6, 3, 3],
+            vec![4, 3, 1],
         ]
     }
 
     const LARGE_ROW_STRING: &str = "9,1,7;1,7,3,7;14;6,7,2,2;4,5,2,4;8,3,1,2;5,4,2,6;3,2,3,3,1,1;1,2,7,3;1,3,1,1,8;9,9;3,4,6;1,8;1,2,4;4,1,7;5,6,4;15,2;5,3,2;3,2,6;3,7;1,1,7;1,4,2;1,4,3;1,3,3;1,1,3,3";
-    fn large_row() -> Vec<Rule> {
+    fn large_row() -> Vec<Vec<usize>> {
         vec![
-            Rule {
-                values: vec![9, 1, 7],
-            },
-            Rule {
-                values: vec![1, 7, 3, 7],
-            },
-            Rule { values: vec![14] },
-            Rule {
-                values: vec![6, 7, 2, 2],
-            },
-            Rule {
-                values: vec![4, 5, 2, 4],
-            },
-            Rule {
-                values: vec![8, 3, 1, 2],
-            },
-            Rule {
-                values: vec![5, 4, 2, 6],
-            },
-            Rule {
-                values: vec![3, 2, 3, 3, 1, 1],
-            },
-            Rule {
-                values: vec![1, 2, 7, 3],
-            },
-            Rule {
-                values: vec![1, 3, 1, 1, 8],
-            },
-            Rule { values: vec![9, 9] },
-            Rule {
-                values: vec![3, 4, 6],
-            },
-            Rule { values: vec![1, 8] },
-            Rule {
-                values: vec![1, 2, 4],
-            },
-            Rule {
-                values: vec![4, 1, 7],
-            },
-            Rule {
-                values: vec![5, 6, 4],
-            },
-            Rule {
-                values: vec![15, 2],
-            },
-            Rule {
-                values: vec![5, 3, 2],
-            },
-            Rule {
-                values: vec![3, 2, 6],
-            },
-            Rule { values: vec![3, 7] },
-            Rule {
-                values: vec![1, 1, 7],
-            },
-            Rule {
-                values: vec![1, 4, 2],
-            },
-            Rule {
-                values: vec![1, 4, 3],
-            },
-            Rule {
-                values: vec![1, 3, 3],
-            },
-            Rule {
-                values: vec![1, 1, 3, 3],
-            },
+            vec![9, 1, 7],
+            vec![1, 7, 3, 7],
+            vec![14],
+            vec![6, 7, 2, 2],
+            vec![4, 5, 2, 4],
+            vec![8, 3, 1, 2],
+            vec![5, 4, 2, 6],
+            vec![3, 2, 3, 3, 1, 1],
+            vec![1, 2, 7, 3],
+            vec![1, 3, 1, 1, 8],
+            vec![9, 9],
+            vec![3, 4, 6],
+            vec![1, 8],
+            vec![1, 2, 4],
+            vec![4, 1, 7],
+            vec![5, 6, 4],
+            vec![15, 2],
+            vec![5, 3, 2],
+            vec![3, 2, 6],
+            vec![3, 7],
+            vec![1, 1, 7],
+            vec![1, 4, 2],
+            vec![1, 4, 3],
+            vec![1, 3, 3],
+            vec![1, 1, 3, 3],
         ]
     }
 
@@ -1351,6 +1269,13 @@ mod tests {
         large_right_left()
     }
 
+    fn large_solved() -> Vec<bool> {
+        large_right_left()
+            .iter()
+            .map(|square| matches!(square, Square::Filled))
+            .collect()
+    }
+
     const LARGE_UNSOLVED_IMAGE: &[u8] =
         include_bytes!("../../../tests/nonogram/unsolved/large.png");
 
@@ -1378,13 +1303,18 @@ mod tests {
     }
 
     #[test]
+    fn solve_large() {
+        test_solve(large_col(), large_row(), large_solved());
+    }
+
+    #[test]
     fn print_large() {
         let unsolved = test_print(large_col(), large_row(), LARGE_UNSOLVED_IMAGE);
         test_print_solution(
             LARGE_WIDTH,
             LARGE_HEIGHT,
             unsolved,
-            large_backtracked(),
+            large_solved(),
             LARGE_SOLVED_IMAGE,
         );
     }

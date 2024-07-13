@@ -1,18 +1,18 @@
 use crate::{structures::disjoint_set::DisjointSet, util::choose_random};
 
-use super::{Direction, Node};
+use super::{MazeDirection, MazeNode};
 
-pub fn recursive_backtrack(width: usize, height: usize) -> Vec<Node> {
-    let mut maze = vec![Node::new(); width * height];
+pub fn recursive_backtrack(width: usize, height: usize) -> Vec<MazeNode> {
+    let mut maze = vec![MazeNode::new(); width * height];
     let mut connections = DisjointSet::with_size(width * height);
 
     let mut path = vec![0];
     let mut can_visit = vec![
         vec![
-            Direction::Right,
-            Direction::Down,
-            Direction::Left,
-            Direction::Up
+            MazeDirection::Right,
+            MazeDirection::Down,
+            MazeDirection::Left,
+            MazeDirection::Up
         ];
         width * height
     ];
@@ -41,14 +41,14 @@ fn visit_next(
     coordinate: usize,
     width: usize,
     height: usize,
-    maze: &mut [Node],
+    maze: &mut [MazeNode],
     connections: &mut DisjointSet,
-    visitable: &mut Vec<Direction>,
+    visitable: &mut Vec<MazeDirection>,
 ) -> Option<usize> {
     while !visitable.is_empty() {
         let rand_idx = choose_random(visitable).expect("visitable should be non-empty");
         match rand_idx {
-            Direction::Right => {
+            MazeDirection::Right => {
                 if (coordinate % width) == (width - 1) {
                     continue;
                 }
@@ -68,7 +68,7 @@ fn visit_next(
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
-            Direction::Down => {
+            MazeDirection::Down => {
                 if coordinate >= width * (height - 1) {
                     continue;
                 }
@@ -88,7 +88,7 @@ fn visit_next(
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
-            Direction::Left => {
+            MazeDirection::Left => {
                 if coordinate % width == 0 {
                     continue;
                 }
@@ -108,7 +108,7 @@ fn visit_next(
                     .expect("coordinate and next should be present in the set");
                 return Some(next);
             }
-            Direction::Up => {
+            MazeDirection::Up => {
                 if coordinate < width {
                     continue;
                 }

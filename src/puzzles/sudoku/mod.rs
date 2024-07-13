@@ -5,7 +5,8 @@ use thiserror::Error;
 
 use crate::{
     structures::dancing_links::{DancingLinksError, DancingMatrix},
-    util::{RgbBuffer, SolutionPair, BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
+    util::{BLACK_PIXEL, ROBOTO_MEDIUM, WHITE_PIXEL},
+    RgbBuffer,
 };
 
 const GRID_SIZE: usize = 9;
@@ -44,13 +45,7 @@ pub enum SudokuError {
     NoSolution,
 }
 
-pub fn solve_sudoku(puzzle: &str) -> Result<SolutionPair, SudokuError> {
-    let original = parse(puzzle)?;
-    let solved = solve(&original)?;
-    Ok(SolutionPair::new(print(original), print(solved)))
-}
-
-fn parse(puzzle: &str) -> Result<Vec<u8>, SudokuError> {
+pub fn parse_sudoku(puzzle: &str) -> Result<Vec<u8>, SudokuError> {
     let puzzle = puzzle
         .chars()
         .map(|char| {
@@ -67,7 +62,7 @@ fn parse(puzzle: &str) -> Result<Vec<u8>, SudokuError> {
     Ok(puzzle)
 }
 
-fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
+pub fn solve_sudoku(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
     let mut matrix = DancingMatrix::new(
         SUDOKU_CONSTRAINTS
             .iter()
@@ -91,7 +86,7 @@ fn solve(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
     Ok(solution.iter().map(|num| (num % 9) as u8 + 1).collect())
 }
 
-fn print(puzzle: Vec<u8>) -> RgbBuffer {
+pub fn print_sudoku(puzzle: &[u8]) -> RgbBuffer {
     const IMAGE_SIZE: u32 = GRID_SIZE as u32 * 100;
 
     let mut image = RgbImage::from_pixel(IMAGE_SIZE, IMAGE_SIZE, WHITE_PIXEL);
@@ -144,18 +139,18 @@ mod tests {
     use image::ImageFormat;
 
     fn test_parse(string: &str, expected: Vec<u8>) {
-        let actual = super::parse(string).expect("should be ok");
+        let actual = super::parse_sudoku(string).expect("should be ok");
         assert_eq!(actual, expected);
     }
 
     fn test_solve(puzzle: &[u8], expected: &[u8]) {
-        let acutal = super::solve(puzzle).expect("should be ok");
+        let acutal = super::solve_sudoku(puzzle).expect("should be ok");
         assert_eq!(acutal, expected);
     }
 
     fn test_print(puzzle: Vec<u8>, expected: &[u8]) {
         let mut actual = Vec::new();
-        super::print(puzzle)
+        super::print_sudoku(&puzzle)
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
             .expect("should be ok");
         assert_eq!(actual, expected);
@@ -354,7 +349,7 @@ mod tests {
 
     #[test]
     fn miri_solve_impossible() {
-        let actual = super::solve(&IMPOSSIBLE_UNSOLVED).expect_err("should be Err");
+        let actual = super::solve_sudoku(&IMPOSSIBLE_UNSOLVED).expect_err("should be Err");
         assert!(matches!(actual, super::SudokuError::NoSolution));
     }
 
