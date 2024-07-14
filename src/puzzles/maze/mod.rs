@@ -4,12 +4,21 @@ use std::collections::VecDeque;
 
 use image::RgbImage;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::{
     puzzles::maze::recursive_backtrack::recursive_backtrack,
     util::{BLACK_PIXEL, RED_PIXEL, WHITE_PIXEL},
     RgbBuffer,
 };
+
+#[derive(Debug, Error)]
+pub enum MazeError {
+    #[error("maze dimensions are invalid")]
+    InvalidDimensions,
+    #[error("maze solution is invalid")]
+    InvalidSolution,
+}
 
 #[derive(Debug, Clone)]
 pub enum MazeAlgorithm {
@@ -122,7 +131,11 @@ pub fn create_maze(
     }
 }
 
-pub fn print_maze(width: u32, height: u32, grid: Vec<MazeNode>) -> RgbBuffer {
+pub fn print_maze(width: u32, height: u32, grid: &[MazeNode]) -> Result<RgbBuffer, MazeError> {
+    if width as usize * height as usize != grid.len() {
+        return Err(MazeError::InvalidDimensions);
+    }
+
     let mut image = RgbImage::from_pixel(width * 10 + 1, height * 10 + 1, WHITE_PIXEL);
 
     for row in 0..image.height() {
@@ -151,10 +164,17 @@ pub fn print_maze(width: u32, height: u32, grid: Vec<MazeNode>) -> RgbBuffer {
         }
     }
 
-    image
+    Ok(image)
 }
 
-pub fn print_maze_solution(mut unsolved: RgbBuffer, solution: Vec<MazeDirection>) -> RgbBuffer {
+pub fn print_maze_solution(
+    mut unsolved: RgbBuffer,
+    solution: &[MazeDirection],
+) -> Result<RgbBuffer, MazeError> {
+    if unsolved.width() < 6 || unsolved.height() < 6 {
+        return Err(MazeError::InvalidDimensions);
+    }
+
     let mut x = 0;
     let mut y = 0;
 
@@ -165,6 +185,10 @@ pub fn print_maze_solution(mut unsolved: RgbBuffer, solution: Vec<MazeDirection>
     for step in solution.iter().rev() {
         match step {
             MazeDirection::Right => {
+                if unsolved.width() < x * 10 + 16 || unsolved.height() < y * 10 + 6 {
+                    return Err(MazeError::InvalidSolution);
+                }
+
                 for k in 0..=10 {
                     unsolved.put_pixel(x * 10 + k + 5, y * 10 + 5, RED_PIXEL);
                 }
@@ -172,6 +196,10 @@ pub fn print_maze_solution(mut unsolved: RgbBuffer, solution: Vec<MazeDirection>
                 x += 1;
             }
             MazeDirection::Down => {
+                if unsolved.width() < x * 10 + 6 || unsolved.height() < y * 10 + 16 {
+                    return Err(MazeError::InvalidSolution);
+                }
+
                 for k in 0..=10 {
                     unsolved.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
                 }
@@ -179,6 +207,10 @@ pub fn print_maze_solution(mut unsolved: RgbBuffer, solution: Vec<MazeDirection>
                 y += 1;
             }
             MazeDirection::Left => {
+                if x * 10 < 15 || unsolved.height() < y * 10 + 6 {
+                    return Err(MazeError::InvalidSolution);
+                }
+
                 for k in 0..=10 {
                     unsolved.put_pixel(x * 10 - k + 5, y * 10 + 5, RED_PIXEL);
                 }
@@ -186,6 +218,10 @@ pub fn print_maze_solution(mut unsolved: RgbBuffer, solution: Vec<MazeDirection>
                 x -= 1;
             }
             MazeDirection::Up => {
+                if unsolved.width() < x * 10 + 6 || y * 10 < 15 {
+                    return Err(MazeError::InvalidSolution);
+                }
+
                 for k in 0..=10 {
                     unsolved.put_pixel(x * 10 + 5, y * 10 - k + 5, RED_PIXEL);
                 }
@@ -195,9 +231,13 @@ pub fn print_maze_solution(mut unsolved: RgbBuffer, solution: Vec<MazeDirection>
         }
     }
 
+    if unsolved.width() < x * 10 + 6 || unsolved.height() < y * 10 + 16 {
+        return Err(MazeError::InvalidSolution);
+    }
+
     for k in 1..=5 {
         unsolved.put_pixel(x * 10 + 5, y * 10 + k + 5, RED_PIXEL);
     }
 
-    unsolved
+    Ok(unsolved)
 }

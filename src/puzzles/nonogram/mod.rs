@@ -27,6 +27,8 @@ pub enum NonogramError {
     InvalidRuleDimension,
     #[error("puzzle has no solution")]
     NoSolution,
+    #[error("invalid dimensions")]
+    InvalidDimensions,
 }
 
 pub fn parse_nonogram_rules(rules: &str, bound: usize) -> Result<Vec<Vec<usize>>, NonogramError> {
@@ -72,8 +74,8 @@ pub fn solve_nonogram(col: &[Vec<usize>], row: &[Vec<usize>]) -> Result<Vec<bool
 
     let mut grid = vec![Square::Blank; width * height];
 
-    right_left(&mut grid, &col, &row)?;
-    recursive_backtrack(&mut grid, &col, &row);
+    right_left(&mut grid, col, row)?;
+    recursive_backtrack(&mut grid, col, row);
 
     Ok(grid
         .iter()
@@ -88,8 +90,8 @@ fn right_left(
 ) -> Result<(), NonogramError> {
     let width = col.len();
 
-    let col_machines: Vec<RuleMachine> = col.iter().map(|rule| RuleMachine::new(&rule)).collect();
-    let row_machines: Vec<RuleMachine> = row.iter().map(|rule| RuleMachine::new(&rule)).collect();
+    let col_machines: Vec<RuleMachine> = col.iter().map(|rule| RuleMachine::new(rule)).collect();
+    let row_machines: Vec<RuleMachine> = row.iter().map(|rule| RuleMachine::new(rule)).collect();
 
     loop {
         let mut changed = false;
@@ -116,12 +118,16 @@ fn right_left(
 
 fn recursive_backtrack(grid: &mut [Square], col: &[Vec<usize>], row: &[Vec<usize>]) {}
 
-pub fn print_unsolved_nonogram(
+pub fn print_nonogram(
     width: u32,
     height: u32,
     col: &[Vec<usize>],
     row: &[Vec<usize>],
-) -> RgbBuffer {
+) -> Result<RgbBuffer, NonogramError> {
+    if width as usize != col.len() || height as usize != row.len() {
+        return Err(NonogramError::InvalidDimensions);
+    }
+
     let rule_width = max(150, width * 10);
     let rule_height = max(150, height * 10);
 
@@ -191,7 +197,7 @@ pub fn print_unsolved_nonogram(
         }
     }
 
-    image
+    Ok(image)
 }
 
 pub fn print_nonogram_solution(
@@ -199,7 +205,17 @@ pub fn print_nonogram_solution(
     height: u32,
     mut image: RgbBuffer,
     grid: &[bool],
-) -> RgbBuffer {
+) -> Result<RgbBuffer, NonogramError> {
+    let rule_width = max(150, width * 10);
+    let rule_height = max(150, height * 10);
+
+    if grid.len() != width as usize * height as usize
+        || image.width() != width * 50 + rule_width
+        || image.height() != height * 50 + rule_height
+    {
+        return Err(NonogramError::InvalidDimensions);
+    }
+
     for (i, square) in grid.iter().enumerate() {
         if !square {
             continue;
@@ -215,7 +231,7 @@ pub fn print_nonogram_solution(
         );
     }
 
-    image
+    Ok(image)
 }
 
 #[cfg(test)]
@@ -256,7 +272,8 @@ mod tests {
 
     fn test_print(col: Vec<Vec<usize>>, row: Vec<Vec<usize>>, expected: &[u8]) -> RgbBuffer {
         let mut actual = Vec::new();
-        let image = super::print_unsolved_nonogram(col.len() as u32, row.len() as u32, &col, &row);
+        let image = super::print_nonogram(col.len() as u32, row.len() as u32, &col, &row)
+            .expect("should be ok");
         image
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
             .expect("should be ok");
@@ -273,6 +290,7 @@ mod tests {
     ) {
         let mut actual = Vec::new();
         super::print_nonogram_solution(width as u32, height as u32, image, &grid)
+            .expect("should be ok")
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
             .expect("should be ok");
         assert_eq!(actual, expected);

@@ -7,11 +7,10 @@ use std::io::Cursor;
 use image::{ImageBuffer, ImageError, ImageFormat, Rgb};
 
 pub use crate::puzzles::maze::{
-    create_maze, print_maze, print_maze_solution, MazeAlgorithm, MazeDirection, MazeNode,
+    create_maze, print_maze, print_maze_solution, MazeAlgorithm, MazeDirection, MazeError, MazeNode,
 };
 pub use crate::puzzles::nonogram::{
-    parse_nonogram_rules, print_nonogram_solution, print_unsolved_nonogram, solve_nonogram,
-    NonogramError,
+    parse_nonogram_rules, print_nonogram, print_nonogram_solution, solve_nonogram, NonogramError,
 };
 pub use crate::puzzles::sudoku::{parse_sudoku, print_sudoku, solve_sudoku, SudokuError};
 

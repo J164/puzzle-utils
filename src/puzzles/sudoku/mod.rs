@@ -63,6 +63,10 @@ pub fn parse_sudoku(puzzle: &str) -> Result<Vec<u8>, SudokuError> {
 }
 
 pub fn solve_sudoku(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
+    if puzzle.len() != GRID_SIZE * GRID_SIZE {
+        return Err(SudokuError::InvalidSize(puzzle.len()));
+    }
+
     let mut matrix = DancingMatrix::new(
         SUDOKU_CONSTRAINTS
             .iter()
@@ -86,7 +90,11 @@ pub fn solve_sudoku(puzzle: &[u8]) -> Result<Vec<u8>, SudokuError> {
     Ok(solution.iter().map(|num| (num % 9) as u8 + 1).collect())
 }
 
-pub fn print_sudoku(puzzle: &[u8]) -> RgbBuffer {
+pub fn print_sudoku(puzzle: &[u8]) -> Result<RgbBuffer, SudokuError> {
+    if puzzle.len() != GRID_SIZE * GRID_SIZE {
+        return Err(SudokuError::InvalidSize(puzzle.len()));
+    }
+
     const IMAGE_SIZE: u32 = GRID_SIZE as u32 * 100;
 
     let mut image = RgbImage::from_pixel(IMAGE_SIZE, IMAGE_SIZE, WHITE_PIXEL);
@@ -129,7 +137,7 @@ pub fn print_sudoku(puzzle: &[u8]) -> RgbBuffer {
         );
     }
 
-    image
+    Ok(image)
 }
 
 #[cfg(test)]
@@ -151,6 +159,7 @@ mod tests {
     fn test_print(puzzle: Vec<u8>, expected: &[u8]) {
         let mut actual = Vec::new();
         super::print_sudoku(&puzzle)
+            .expect("should be ok")
             .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
             .expect("should be ok");
         assert_eq!(actual, expected);
