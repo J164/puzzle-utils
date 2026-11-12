@@ -1,25 +1,24 @@
 pub mod puzzles;
+#[cfg(feature = "render")]
+mod render;
 mod structures;
+#[cfg(feature = "maze")]
 mod util;
 
-use std::io::Cursor;
+#[cfg(feature = "maze")]
+pub use crate::puzzles::maze::{MazeAlgorithm, MazeDirection, MazeError, MazeNode, create_maze};
+#[cfg(all(feature = "maze", feature = "render"))]
+pub use crate::puzzles::maze::{print_maze, print_maze_solution};
 
-use image::{ImageBuffer, ImageError, ImageFormat, Rgb};
+#[cfg(feature = "nonogram")]
+pub use crate::puzzles::nonogram::{NonogramError, parse_nonogram_rules, solve_nonogram};
+#[cfg(all(feature = "nonogram", feature = "render"))]
+pub use crate::puzzles::nonogram::{print_nonogram, print_nonogram_solution};
 
-pub use crate::puzzles::maze::{
-    create_maze, print_maze, print_maze_solution, MazeAlgorithm, MazeDirection, MazeError, MazeNode,
-};
-pub use crate::puzzles::nonogram::{
-    parse_nonogram_rules, print_nonogram, print_nonogram_solution, solve_nonogram, NonogramError,
-};
-pub use crate::puzzles::sudoku::{parse_sudoku, print_sudoku, solve_sudoku, SudokuError};
+#[cfg(all(feature = "sudoku", feature = "render"))]
+pub use crate::puzzles::sudoku::print_sudoku;
+#[cfg(feature = "sudoku")]
+pub use crate::puzzles::sudoku::{SudokuError, parse_sudoku, solve_sudoku};
 
-pub type RgbBuffer = ImageBuffer<Rgb<u8>, Vec<u8>>;
-
-/// Converts a RgbBuffer to a Vec of bytes representing a PNG
-pub fn image_to_png_bytes(image: &RgbBuffer) -> Result<Vec<u8>, ImageError> {
-    let mut bytes = Vec::new();
-    image.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png)?;
-
-    Ok(bytes)
-}
+#[cfg(feature = "render")]
+pub use crate::render::{RgbBuffer, image_to_png_bytes};

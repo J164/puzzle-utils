@@ -2,7 +2,7 @@ mod node;
 
 use std::{alloc::dealloc, mem::take, ptr::null_mut};
 
-use node::{Node, NODE_LAYOUT};
+use node::{NODE_LAYOUT, Node};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
