@@ -2,8 +2,8 @@
 name = "puzzle-utils"
 version = "0.3.0"
 authors = ["J164"]
-rust-version = "1.79.0"
-edition = "2021"
+rust-version = "1.100.0"
+edition = "2024"
 license = "MIT"
 description = "Puzzle solving utilities"
 repository = "https://github.com/J164/puzzle-utils"
@@ -14,9 +14,9 @@ repository = "https://github.com/J164/puzzle-utils"
 unwrap_used = "warn"
 
 [dependencies]
-ab_glyph = "0.2.28"
-image = "0.25.1"
-imageproc = "0.25.0"
-rand = "0.8.5"
-serde = { version = "1.0.204", features = ["derive"] }
-thiserror = "1.0.62"
+ab_glyph = "0.2.32"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+imageproc = { version = "0.27.0", default-features = false, features = ["text"] }
+rand = { version = "0.10.3", default-features = false, features = ["std", "thread_rng"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.21"

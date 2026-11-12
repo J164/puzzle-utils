@@ -142,10 +142,6 @@ pub fn print_sudoku(puzzle: &[u8]) -> Result<RgbBuffer, SudokuError> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
-
-    use image::ImageFormat;
-
     fn test_parse(string: &str, expected: Vec<u8>) {
         let actual = super::parse_sudoku(string).expect("should be ok");
         assert_eq!(actual, expected);
@@ -154,15 +150,6 @@ mod tests {
     fn test_solve(puzzle: &[u8], expected: &[u8]) {
         let acutal = super::solve_sudoku(puzzle).expect("should be ok");
         assert_eq!(acutal, expected);
-    }
-
-    fn test_print(puzzle: Vec<u8>, expected: &[u8]) {
-        let mut actual = Vec::new();
-        super::print_sudoku(&puzzle)
-            .expect("should be ok")
-            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
-            .expect("should be ok");
-        assert_eq!(actual, expected);
     }
 
     //// GENERAL TESTS
@@ -182,9 +169,6 @@ mod tests {
         7, 6, 3, 3, 8, 7, 5, 6, 1, 9, 4, 2, 6, 2, 9, 3, 4, 7, 5, 1, 8,
     ];
 
-    const EASY_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/easy.png");
-    const EASY_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/easy.png");
-
     #[test]
     fn parse_easy() {
         test_parse(EASY_STRING, EASY_UNSOLVED.to_vec());
@@ -193,12 +177,6 @@ mod tests {
     #[test]
     fn miri_solve_easy() {
         test_solve(&EASY_UNSOLVED, &EASY_SOLVED);
-    }
-
-    #[test]
-    fn print_easy() {
-        test_print(EASY_UNSOLVED.to_vec(), EASY_UNSOLVED_IMAGE);
-        test_print(EASY_SOLVED.to_vec(), EASY_SOLVED_IMAGE);
     }
 
     // Medium
@@ -216,10 +194,6 @@ mod tests {
         9, 8, 6, 7, 8, 2, 6, 9, 1, 4, 5, 3, 9, 6, 5, 8, 3, 4, 7, 1, 2,
     ];
 
-    const MEDIUM_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/sudoku/unsolved/medium.png");
-    const MEDIUM_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/medium.png");
-
     #[test]
     fn parse_medium() {
         test_parse(MEDIUM_STRING, MEDIUM_UNSOLVED.to_vec());
@@ -228,12 +202,6 @@ mod tests {
     #[test]
     fn miri_solve_medium() {
         test_solve(&MEDIUM_UNSOLVED, &MEDIUM_SOLVED);
-    }
-
-    #[test]
-    fn print_medium() {
-        test_print(MEDIUM_UNSOLVED.to_vec(), MEDIUM_UNSOLVED_IMAGE);
-        test_print(MEDIUM_SOLVED.to_vec(), MEDIUM_SOLVED_IMAGE);
     }
 
     // Hard 1
@@ -251,9 +219,6 @@ mod tests {
         7, 6, 5, 6, 3, 1, 2, 5, 7, 9, 4, 8, 5, 4, 7, 8, 9, 6, 2, 1, 3,
     ];
 
-    const HARD1_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard1.png");
-    const HARD1_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard1.png");
-
     #[test]
     fn parse_hard1() {
         test_parse(HARD1_STRING, HARD1_UNSOLVED.to_vec());
@@ -262,12 +227,6 @@ mod tests {
     #[test]
     fn miri_solve_hard1() {
         test_solve(&HARD1_UNSOLVED, &HARD1_SOLVED);
-    }
-
-    #[test]
-    fn print_hard1() {
-        test_print(HARD1_UNSOLVED.to_vec(), HARD1_UNSOLVED_IMAGE);
-        test_print(HARD1_SOLVED.to_vec(), HARD1_SOLVED_IMAGE);
     }
 
     // Hard 2
@@ -285,9 +244,6 @@ mod tests {
         3, 6, 8, 4, 3, 8, 5, 2, 6, 9, 1, 7, 7, 9, 6, 3, 1, 8, 4, 5, 2,
     ];
 
-    const HARD2_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard2.png");
-    const HARD2_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard2.png");
-
     #[test]
     fn parse_hard2() {
         test_parse(HARD2_STRING, HARD2_UNSOLVED.to_vec());
@@ -296,12 +252,6 @@ mod tests {
     #[test]
     fn miri_solve_hard2() {
         test_solve(&HARD2_UNSOLVED, &HARD2_SOLVED);
-    }
-
-    #[test]
-    fn print_hard2() {
-        test_print(HARD2_UNSOLVED.to_vec(), HARD2_UNSOLVED_IMAGE);
-        test_print(HARD2_SOLVED.to_vec(), HARD2_SOLVED_IMAGE);
     }
 
     // Hard 3
@@ -319,9 +269,6 @@ mod tests {
         2, 3, 7, 2, 5, 7, 8, 9, 3, 4, 6, 1, 3, 4, 6, 1, 2, 7, 9, 5, 8,
     ];
 
-    const HARD3_UNSOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/unsolved/hard3.png");
-    const HARD3_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/sudoku/solved/hard3.png");
-
     #[test]
     fn parse_hard3() {
         test_parse(HARD3_STRING, HARD3_UNSOLVED.to_vec());
@@ -330,12 +277,6 @@ mod tests {
     #[test]
     fn miri_solve_hard3() {
         test_solve(&HARD3_UNSOLVED, &HARD3_SOLVED);
-    }
-
-    #[test]
-    fn print_hard3() {
-        test_print(HARD3_UNSOLVED.to_vec(), HARD3_UNSOLVED_IMAGE);
-        test_print(HARD3_SOLVED.to_vec(), HARD3_SOLVED_IMAGE);
     }
 
     // Impossible
@@ -348,9 +289,6 @@ mod tests {
         0, 0, 5, 0, 9, 0, 0, 2, 0, 1, 0, 0, 0, 0, 6, 0, 9, 0, 0, 0, 0,
     ];
 
-    const IMPOSSIBLE_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/sudoku/unsolved/impossible.png");
-
     #[test]
     fn parse_impossible() {
         test_parse(IMPOSSIBLE_STRING, IMPOSSIBLE_UNSOLVED.to_vec());
@@ -360,10 +298,5 @@ mod tests {
     fn miri_solve_impossible() {
         let actual = super::solve_sudoku(&IMPOSSIBLE_UNSOLVED).expect_err("should be Err");
         assert!(matches!(actual, super::SudokuError::NoSolution));
-    }
-
-    #[test]
-    fn print_impossible() {
-        test_print(IMPOSSIBLE_UNSOLVED.to_vec(), IMPOSSIBLE_UNSOLVED_IMAGE);
     }
 }

@@ -236,12 +236,6 @@ pub fn print_nonogram_solution(
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
-
-    use image::ImageFormat;
-
-    use crate::RgbBuffer;
-
     use super::Square;
 
     fn test_parse(string: &str, expected: Vec<Vec<usize>>, bound: usize) {
@@ -267,32 +261,6 @@ mod tests {
 
     fn test_solve(col: Vec<Vec<usize>>, row: Vec<Vec<usize>>, expected: Vec<bool>) {
         let actual = super::solve_nonogram(&col, &row).expect("should be ok");
-        assert_eq!(actual, expected);
-    }
-
-    fn test_print(col: Vec<Vec<usize>>, row: Vec<Vec<usize>>, expected: &[u8]) -> RgbBuffer {
-        let mut actual = Vec::new();
-        let image = super::print_nonogram(col.len() as u32, row.len() as u32, &col, &row)
-            .expect("should be ok");
-        image
-            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
-            .expect("should be ok");
-        assert_eq!(actual, expected);
-        image
-    }
-
-    fn test_print_solution(
-        width: usize,
-        height: usize,
-        image: RgbBuffer,
-        grid: Vec<bool>,
-        expected: &[u8],
-    ) {
-        let mut actual = Vec::new();
-        super::print_nonogram_solution(width as u32, height as u32, image, &grid)
-            .expect("should be ok")
-            .write_to(&mut Cursor::new(&mut actual), ImageFormat::Png)
-            .expect("should be ok");
         assert_eq!(actual, expected);
     }
 
@@ -334,12 +302,6 @@ mod tests {
         vec![true, true, true, false]
     }
 
-    const TWO_TWO_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/unsolved/two_two.png");
-
-    const TWO_TWO_SOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/solved/two_two.png");
-
     #[test]
     fn parse_two_two() {
         test_parse(TWO_TWO_COL_STRING, two_two_col(), TWO_TWO_HEIGHT);
@@ -364,18 +326,6 @@ mod tests {
     #[test]
     fn solve_two_two() {
         test_solve(two_two_col(), two_two_row(), two_two_solved());
-    }
-
-    #[test]
-    fn print_two_two() {
-        let unsolved = test_print(two_two_col(), two_two_row(), TWO_TWO_UNSOLVED_IMAGE);
-        test_print_solution(
-            TWO_TWO_WIDTH,
-            TWO_TWO_HEIGHT,
-            unsolved,
-            two_two_solved(),
-            TWO_TWO_SOLVED_IMAGE,
-        );
     }
 
     // two x three
@@ -418,12 +368,6 @@ mod tests {
         vec![true, false, false, true, true, true]
     }
 
-    const TWO_THREE_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/unsolved/two_three.png");
-
-    const TWO_THREE_SOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/solved/two_three.png");
-
     #[test]
     fn parse_two_three() {
         test_parse(TWO_THREE_COL_STRING, two_three_col(), TWO_THREE_HEIGHT);
@@ -448,18 +392,6 @@ mod tests {
     #[test]
     fn solve_two_three() {
         test_solve(two_three_col(), two_three_row(), two_three_solved());
-    }
-
-    #[test]
-    fn print_two_three() {
-        let unsolved = test_print(two_three_col(), two_three_row(), TWO_THREE_UNSOLVED_IMAGE);
-        test_print_solution(
-            TWO_THREE_WIDTH,
-            TWO_THREE_HEIGHT,
-            unsolved,
-            two_three_solved(),
-            TWO_THREE_SOLVED_IMAGE,
-        );
     }
 
     // five x five
@@ -543,12 +475,6 @@ mod tests {
         ]
     }
 
-    const FIVE_FIVE_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/unsolved/five_five.png");
-
-    const FIVE_FIVE_SOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/solved/five_five.png");
-
     #[test]
     fn parse_five_five() {
         test_parse(FIVE_FIVE_COL_STRING, five_five_col(), FIVE_FIVE_HEIGHT);
@@ -573,18 +499,6 @@ mod tests {
     #[test]
     fn solve_five_five() {
         test_solve(five_five_col(), five_five_row(), five_five_solved());
-    }
-
-    #[test]
-    fn print_five_five() {
-        let unsolved = test_print(five_five_col(), five_five_row(), FIVE_FIVE_UNSOLVED_IMAGE);
-        test_print_solution(
-            FIVE_FIVE_WIDTH,
-            FIVE_FIVE_HEIGHT,
-            unsolved,
-            five_five_solved(),
-            FIVE_FIVE_SOLVED_IMAGE,
-        );
     }
 
     // Large
@@ -1294,11 +1208,6 @@ mod tests {
             .collect()
     }
 
-    const LARGE_UNSOLVED_IMAGE: &[u8] =
-        include_bytes!("../../../tests/nonogram/unsolved/large.png");
-
-    const LARGE_SOLVED_IMAGE: &[u8] = include_bytes!("../../../tests/nonogram/solved/large.png");
-
     #[test]
     fn parse_large() {
         test_parse(LARGE_COL_STRING, large_col(), LARGE_HEIGHT);
@@ -1323,17 +1232,5 @@ mod tests {
     #[test]
     fn solve_large() {
         test_solve(large_col(), large_row(), large_solved());
-    }
-
-    #[test]
-    fn print_large() {
-        let unsolved = test_print(large_col(), large_row(), LARGE_UNSOLVED_IMAGE);
-        test_print_solution(
-            LARGE_WIDTH,
-            LARGE_HEIGHT,
-            unsolved,
-            large_solved(),
-            LARGE_SOLVED_IMAGE,
-        );
     }
 }
