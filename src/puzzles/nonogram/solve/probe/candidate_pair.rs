@@ -80,9 +80,7 @@ impl CandidatePair {
             (Ok(_), Ok(_)) => (&self.empty, &self.filled),
             (Err(_), Err(_)) => return Err(Contradiction),
         };
-        let deductions = a.iter().zip(b.iter()).map(|(&a, &b)| a | b);
-
-        grid.update(deductions, log);
+        grid.merge_from(a, b, log);
 
         self.dirty.clear();
 

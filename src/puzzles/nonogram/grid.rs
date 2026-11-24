@@ -154,7 +154,7 @@ impl Grid {
         )
     }
 
-    pub(super) fn update(
+    fn update(
         &mut self,
         updated: impl IntoIterator<Item = Cell>,
         changed: &mut Vec<Change>,
@@ -177,6 +177,20 @@ impl Grid {
                 }
             },
         )
+    }
+
+    pub(super) fn merge_from(&mut self, a: &Grid, b: &Grid, changed: &mut Vec<Change>) -> bool {
+        if !self
+            .cells
+            .iter()
+            .zip(a.cells.iter())
+            .zip(b.cells.iter())
+            .fold(false, |acc, ((&cell, &a), &b)| acc | ((a | b) != cell))
+        {
+            return false;
+        }
+
+        self.update(a.cells.iter().zip(&b.cells).map(|(&a, &b)| a | b), changed)
     }
 
     pub(super) fn apply(&mut self, changes: &[Change]) {

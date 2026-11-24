@@ -60,7 +60,7 @@ impl Prober {
                 candidates[i].probe(propagator, puzzle, grid, &mut self.log)?;
 
                 if grid.is_solved() {
-                    return Ok(Progress::Solved)
+                    return Ok(Progress::Solved);
                 }
 
                 made_progress |= self.log.len() > start;

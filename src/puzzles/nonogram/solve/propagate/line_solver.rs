@@ -54,7 +54,6 @@ impl LineSolver {
         self.bool_row.clear();
         self.bool_row.resize(line_length, false);
 
-        self.table.clear();
         self.table.resize(
             table_size,
             TableEntry {
@@ -148,6 +147,12 @@ fn fix(
     for (&clue, current) in clues.iter().zip(rows) {
         let mut previous_fix = false;
 
+        current[0] = TableEntry {
+            fix0: false,
+            fix1: false,
+            fix: false,
+            reached: false,
+        };
         for i in 1..line_length {
             let fix0 = fix0(line[i], previous_fix);
             let fix1 = i >= clue && ((run[i] >= clue) & previous[i - clue].fix0);
