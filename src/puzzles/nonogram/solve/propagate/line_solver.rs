@@ -93,7 +93,6 @@ impl LineSolver {
         Ok(&line[1..])
     }
 
-    #[inline(always)]
     fn setup_line(&mut self, cells: impl IntoIterator<Item = Cell>) {
         self.line.clear();
         self.line.push(Cell::Empty);

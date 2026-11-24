@@ -5,7 +5,10 @@ use std::cmp::max;
 use crate::puzzles::nonogram::{
     NonogramPuzzle,
     grid::{Axis, Grid},
-    solve::{Contradiction, Progress, SolveResult, propagate::line_solver::LineSolver},
+    solve::{
+        Contradiction, Progress, SolveResult, dirty_lines::DirtyLines,
+        propagate::line_solver::LineSolver,
+    },
 };
 
 pub(super) struct Propagator {
@@ -31,11 +34,16 @@ impl Propagator {
         }
     }
 
-    pub(super) fn solve(&mut self, grid: &mut Grid, puzzle: &NonogramPuzzle) -> SolveResult {
+    pub(super) fn solve(
+        &mut self,
+        grid: &mut Grid,
+        puzzle: &NonogramPuzzle,
+        dirty: &DirtyLines,
+    ) -> SolveResult {
         self.row_changed.clear();
-        self.row_changed.resize(grid.height(), true);
+        self.row_changed.extend_from_slice(dirty.rows());
         self.col_changed.clear();
-        self.col_changed.resize(grid.width(), true);
+        self.col_changed.extend_from_slice(dirty.cols());
 
         loop {
             self.sweep::<true>(grid, puzzle)?;
@@ -52,6 +60,7 @@ impl Propagator {
         })
     }
 
+    #[inline(always)]
     fn sweep<const ROW: bool>(
         &mut self,
         grid: &mut Grid,
@@ -79,19 +88,8 @@ impl Propagator {
                 continue;
             }
 
-            let updated_line = self.line_solver.solve(grid.line(axis, i), &clues[i])?;
-
-            for ((grid_cell, &updated_cell), crossing_dirty) in grid
-                .line_mut(axis, i)
-                .zip(updated_line)
-                .zip(crossing_dirty.iter_mut())
-            {
-                let changed = *grid_cell != updated_cell;
-                *crossing_dirty |= changed;
-                crossing_changed |= changed;
-                *grid_cell = updated_cell;
-            }
-
+            let updated = self.line_solver.solve(grid.line(axis, i), &clues[i])?;
+            crossing_changed |= grid.update_line(axis, i, updated.iter().copied(), crossing_dirty);
             *dirty = false;
         }
 

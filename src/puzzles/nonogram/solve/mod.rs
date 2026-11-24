@@ -1,6 +1,12 @@
+mod dirty_lines;
+mod probe;
 mod propagate;
 
-use crate::puzzles::nonogram::{NonogramPuzzle, grid::Grid, solve::propagate::Propagator};
+use crate::puzzles::nonogram::{
+    NonogramPuzzle,
+    grid::Grid,
+    solve::{dirty_lines::DirtyLines, probe::Prober, propagate::Propagator},
+};
 
 #[derive(Debug)]
 pub struct Contradiction;
@@ -22,21 +28,27 @@ pub fn solve_nonogram(puzzle: &NonogramPuzzle) -> Result<Grid, Contradiction> {
 
 pub struct NonogramSolver {
     grid: Grid,
+    dirty: DirtyLines,
     propagator: Propagator,
+    prober: Prober,
 }
 
 impl NonogramSolver {
     pub fn new() -> NonogramSolver {
         NonogramSolver {
             grid: Grid::new(),
+            dirty: DirtyLines::new(),
             propagator: Propagator::new(),
+            prober: Prober::new(),
         }
     }
 
     pub fn with_capacity(width: usize, height: usize) -> NonogramSolver {
         NonogramSolver {
             grid: Grid::with_capacity(width, height),
+            dirty: DirtyLines::with_capacity(width, height),
             propagator: Propagator::with_capacity(width, height),
+            prober: Prober::new(),
         }
     }
 
@@ -45,7 +57,16 @@ impl NonogramSolver {
         let height = puzzle.row_clues.len();
 
         self.grid.init(width, height);
-        self.propagator.solve(&mut self.grid, puzzle)?;
+        self.dirty.init(width, height, true);
+
+        let progress = self.propagator.solve(&mut self.grid, puzzle, &self.dirty)?;
+
+        if matches!(progress, Progress::Solved) {
+            return Ok(&self.grid);
+        }
+
+        self.prober
+            .solve(&mut self.propagator, &mut self.grid, puzzle)?;
 
         Ok(&self.grid)
     }
