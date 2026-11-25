@@ -5,11 +5,14 @@ use std::cmp::max;
 use crate::puzzles::nonogram::{
     NonogramPuzzle,
     grid::{Axis, Grid},
-    solve::{
-        Contradiction, Progress, SolveResult, dirty_lines::DirtyLines,
-        propagate::line_solver::LineSolver,
-    },
+    solve::{Contradiction, dirty_lines::DirtyLines, propagate::line_solver::LineSolver},
 };
+
+#[derive(Debug)]
+pub(super) enum Progress {
+    Solved,
+    Incomplete,
+}
 
 pub(super) struct Propagator {
     line_solver: LineSolver,
@@ -39,7 +42,7 @@ impl Propagator {
         grid: &mut Grid,
         puzzle: &NonogramPuzzle,
         dirty: &DirtyLines,
-    ) -> SolveResult {
+    ) -> Result<Progress, Contradiction> {
         self.row_changed.clear();
         self.row_changed.extend_from_slice(dirty.rows());
         self.col_changed.clear();

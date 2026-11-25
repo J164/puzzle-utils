@@ -1,3 +1,5 @@
+use std::mem::replace;
+
 use crate::puzzles::nonogram::{
     Cell, Contradiction, Grid, NonogramPuzzle,
     grid::Change,
@@ -85,6 +87,22 @@ impl CandidatePair {
         self.dirty.clear();
 
         Ok(())
+    }
+
+    pub(super) fn branch_score(&self, grid: &Grid) -> f64 {
+        let p0 = grid.unknown() - self.empty.unknown();
+        let p1 = grid.unknown() - self.filled.unknown();
+
+        p0.min(p1) as f64 + (p0.abs_diff(p1) as f64).ln_1p()
+    }
+
+    pub(super) fn take_grids(&mut self) -> (Grid, Grid) {
+        self.initialized = false;
+
+        (
+            replace(&mut self.empty, Grid::new()),
+            replace(&mut self.filled, Grid::new()),
+        )
     }
 
     pub(super) fn reset(&mut self) {

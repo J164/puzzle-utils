@@ -16,10 +16,8 @@ pub(super) struct Prober {
 #[derive(Debug)]
 pub(super) enum Progress {
     Solved,
-    Incomplete,
+    Incomplete((Grid, Grid)),
 }
-
-pub(super) type SolveResult = Result<Progress, Contradiction>;
 
 impl Prober {
     pub(super) fn new() -> Prober {
@@ -34,7 +32,7 @@ impl Prober {
         propagator: &mut Propagator,
         grid: &mut Grid,
         puzzle: &NonogramPuzzle,
-    ) -> SolveResult {
+    ) -> Result<Progress, Contradiction> {
         let n = grid.width() * grid.height();
 
         self.candidates
@@ -71,10 +69,19 @@ impl Prober {
             }
         }
 
-        Ok(if grid.is_solved() {
-            Progress::Solved
-        } else {
-            Progress::Incomplete
-        })
+        if grid.is_solved() {
+            return Ok(Progress::Solved);
+        }
+
+        let best = (0..n)
+            .filter(|&i| matches!(grid.get_cell(i), Cell::Unknown))
+            .max_by(|&a, &b| {
+                candidates[a]
+                    .branch_score(grid)
+                    .total_cmp(&candidates[b].branch_score(grid))
+            })
+            .expect("an unsolved grid has an unknown cell");
+
+        Ok(Progress::Incomplete(candidates[best].take_grids()))
     }
 }
