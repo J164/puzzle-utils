@@ -26,11 +26,7 @@ impl CandidatePair {
         }
     }
 
-    pub(super) fn init(&mut self, grid: &Grid, pixel: usize, log_length: usize) {
-        if self.initialized {
-            return;
-        }
-
+    fn init(&mut self, grid: &Grid, pixel: usize, log_length: usize) {
         let width = grid.width();
         let height = grid.height();
 
@@ -46,35 +42,29 @@ impl CandidatePair {
         self.initialized = true;
     }
 
-    fn sync(&mut self, log: &[Change]) {
-        let new = &log[self.synced..];
-
-        self.empty.apply(new);
-        self.filled.apply(new);
-
-        let (rows, cols) = self.dirty.rows_cols_mut();
-        for change in new {
-            rows[change.row] = true;
-            cols[change.col] = true;
-        }
-
-        self.synced = log.len();
-    }
-
     pub(super) fn probe(
         &mut self,
+        pixel: usize,
         propagator: &mut Propagator,
         puzzle: &NonogramPuzzle,
         grid: &mut Grid,
         log: &mut Vec<Change>,
     ) -> Result<(), Contradiction> {
-        self.sync(log);
-        if !self.dirty.is_dirty() {
+        let fresh = !self.initialized;
+        if fresh {
+            self.init(grid, pixel, log.len());
+        }
+
+        let new = &log[self.synced..];
+        if new.is_empty() && !fresh {
             return Ok(());
         }
 
-        let empty_result = propagator.solve(&mut self.empty, puzzle, &self.dirty);
-        let filled_result = propagator.solve(&mut self.filled, puzzle, &self.dirty);
+        self.dirty.mark_changes(new);
+
+        let empty_result = update_candidate(&mut self.empty, &self.dirty, new, puzzle, propagator);
+        let filled_result =
+            update_candidate(&mut self.filled, &self.dirty, new, puzzle, propagator);
 
         let (a, b) = match (empty_result, filled_result) {
             (Ok(_), Err(_)) => (&self.empty, &self.empty),
@@ -85,6 +75,7 @@ impl CandidatePair {
         grid.merge_from(a, b, log);
 
         self.dirty.clear();
+        self.synced = log.len();
 
         Ok(())
     }
@@ -108,4 +99,18 @@ impl CandidatePair {
     pub(super) fn reset(&mut self) {
         self.initialized = false;
     }
+}
+
+fn update_candidate(
+    candidate: &mut Grid,
+    dirty: &DirtyLines,
+    new: &[Change],
+    puzzle: &NonogramPuzzle,
+    propagator: &mut Propagator,
+) -> Result<(), Contradiction> {
+    if candidate.apply(new) {
+        return Err(Contradiction);
+    }
+
+    propagator.solve(candidate, puzzle, dirty).map(|_| ())
 }

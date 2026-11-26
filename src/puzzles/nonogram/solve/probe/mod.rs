@@ -54,8 +54,7 @@ impl Prober {
                 }
 
                 let start = self.log.len();
-                candidate.init(grid, i, start);
-                candidate.probe(propagator, puzzle, grid, &mut self.log)?;
+                candidate.probe(i, propagator, puzzle, grid, &mut self.log)?;
 
                 if grid.is_solved() {
                     return Ok(Progress::Solved);

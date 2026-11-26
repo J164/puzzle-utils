@@ -1,3 +1,5 @@
+use crate::puzzles::nonogram::grid::Change;
+
 #[derive(Debug, Clone)]
 pub(super) struct DirtyLines {
     rows: Vec<bool>,
@@ -31,8 +33,11 @@ impl DirtyLines {
         self.cols[j] = true;
     }
 
-    pub(super) fn is_dirty(&self) -> bool {
-        self.rows.iter().chain(self.cols.iter()).any(|&dirty| dirty)
+    pub(super) fn mark_changes(&mut self, changes: &[Change]) {
+        for change in changes {
+            self.rows[change.row] = true;
+            self.cols[change.col] = true;
+        }
     }
 
     pub(super) fn clear(&mut self) {
@@ -46,9 +51,5 @@ impl DirtyLines {
 
     pub(super) fn cols(&self) -> &[bool] {
         &self.cols
-    }
-
-    pub(super) fn rows_cols_mut(&mut self) -> (&mut [bool], &mut [bool]) {
-        (&mut self.rows, &mut self.cols)
     }
 }

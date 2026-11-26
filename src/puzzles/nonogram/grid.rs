@@ -193,18 +193,23 @@ impl Grid {
         self.update(a.cells.iter().zip(&b.cells).map(|(&a, &b)| a | b), changed)
     }
 
-    pub(super) fn apply(&mut self, changes: &[Change]) {
+    pub(super) fn apply(&mut self, changes: &[Change]) -> bool {
         let mut old_unknown = 0;
         let mut new_unknown = 0;
+        let mut conflict = false;
 
         for change in changes {
-            old_unknown += matches!(self.cells[change.index], Cell::Unknown) as usize;
+            let old = self.cells[change.index];
+            old_unknown += matches!(old, Cell::Unknown) as usize;
             new_unknown += matches!(change.cell, Cell::Unknown) as usize;
+            conflict |= old != Cell::Unknown && old != change.cell;
 
             self.cells[change.index] = change.cell;
         }
 
         self.unknown = self.unknown - old_unknown + new_unknown;
+
+        conflict
     }
 
     pub(super) fn get_cell(&self, i: usize) -> Cell {
