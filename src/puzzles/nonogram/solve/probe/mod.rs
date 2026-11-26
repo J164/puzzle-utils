@@ -48,14 +48,14 @@ impl Prober {
         loop {
             let mut made_progress = false;
 
-            for i in 0..n {
+            for (i, candidate) in candidates.iter_mut().enumerate() {
                 if !matches!(grid.get_cell(i), Cell::Unknown) {
                     continue;
                 }
 
                 let start = self.log.len();
-                candidates[i].init(grid, i, start);
-                candidates[i].probe(propagator, puzzle, grid, &mut self.log)?;
+                candidate.init(grid, i, start);
+                candidate.probe(propagator, puzzle, grid, &mut self.log)?;
 
                 if grid.is_solved() {
                     return Ok(Progress::Solved);
