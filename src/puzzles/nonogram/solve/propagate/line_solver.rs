@@ -1,4 +1,7 @@
-use std::{cmp::min, hint::assert_unchecked};
+use std::{
+    cmp::{max, min},
+    hint::assert_unchecked,
+};
 
 use crate::puzzles::nonogram::{grid::Cell, solve::Contradiction};
 
@@ -41,10 +44,21 @@ impl LineSolver {
         cells: impl IntoIterator<Item = Cell>,
         clues: &[usize],
     ) -> Result<&[Cell], Contradiction> {
-        self.setup_line(cells);
+        self.line.clear();
+        self.line.push(Cell::Empty);
+        self.line.extend(cells);
+
+        // SAFETY: a sentinel empty cell was pushed to line so it must not be empty
+        unsafe { assert_unchecked(!self.line.is_empty()) };
 
         let line_length = self.line.len();
         let clues_length = clues.len();
+
+        let freedom = clues.iter().sum::<usize>() + clues_length;
+
+        if freedom > line_length {
+            return Err(Contradiction);
+        }
 
         let table_size = line_length * (clues_length + 1);
 
@@ -87,18 +101,9 @@ impl LineSolver {
         let table = &mut self.table[..table_size];
 
         fix(line, clues, number_row, table)?;
-        paint(line, clues, number_row, bool_row, table);
+        paint(line, clues, freedom, number_row, bool_row, table);
 
         Ok(&line[1..])
-    }
-
-    fn setup_line(&mut self, cells: impl IntoIterator<Item = Cell>) {
-        self.line.clear();
-        self.line.push(Cell::Empty);
-        self.line.extend(cells);
-
-        // SAFETY: a sentinel empty cell was pushed to line so it must not be empty
-        unsafe { assert_unchecked(!self.line.is_empty()) };
     }
 }
 
@@ -144,16 +149,23 @@ fn fix(
     }
 
     let mut previous = first_row;
+    let mut freedom = 0;
     for (&clue, current) in clues.iter().zip(rows) {
         let mut previous_fix = false;
+        freedom += clue;
+        let start = max(freedom, 1);
 
-        current[0] = TableEntry {
+        // SAFETY: fix is not called unless sum + clues.len() <= line_length, and start <= sum + clues.len() - 1
+        unsafe {
+            assert_unchecked(start - 1 < current.len());
+        }
+        current[start - 1] = TableEntry {
             fix0: false,
             fix1: false,
             fix: false,
             reached: false,
         };
-        for i in 1..line_length {
+        for i in start..line_length {
             let fix0 = fix0(line[i], previous_fix);
             let fix1 = i >= clue && ((run[i] >= clue) & previous[i - clue].fix0);
             let fix = fix0 | fix1;
@@ -167,6 +179,7 @@ fn fix(
             previous_fix = fix;
         }
 
+        freedom += 1;
         previous = current;
     }
 
@@ -177,6 +190,7 @@ fn fix(
 fn paint(
     line: &mut [Cell],
     clues: &[usize],
+    freedom: usize,
     sequence_start: &mut [usize],
     possibly_zero: &mut [bool],
     table: &mut [TableEntry],
@@ -190,8 +204,16 @@ fn paint(
     let mut current = unsafe { rows.next().unwrap_unchecked() };
 
     current[line_length - 1].reached = true;
+    let mut freedom = freedom;
     for (&clue, next) in clues.iter().rev().zip(rows) {
-        for i in (1..line_length).rev() {
+        let start = max(freedom - 1, 1);
+
+        for i in (start..line_length).rev() {
+            // SAFETY: the upper bound of the range is line_length
+            unsafe {
+                assert_unchecked(i < line_length);
+            }
+
             if !current[i].reached {
                 continue;
             }
@@ -212,10 +234,16 @@ fn paint(
             }
         }
 
+        freedom -= clue + 1;
         current = next;
     }
 
     for i in (1..line_length).rev() {
+        // SAFETY: the upper bound of the range is line_length
+        unsafe {
+            assert_unchecked(i < line_length);
+        }
+
         if current[i].reached && current[i].fix0 {
             possibly_zero[i] = true;
             current[i - 1].reached = true;
@@ -224,6 +252,11 @@ fn paint(
 
     let mut lowest = line_length;
     for i in (1..line_length).rev() {
+        // SAFETY: the upper bound of the range is line_length
+        unsafe {
+            assert_unchecked(i < line_length);
+        }
+
         lowest = min(lowest, sequence_start[i]);
 
         let can_be_zero = possibly_zero[i] as u8;
